@@ -1,0 +1,59 @@
+package com.raghav.jobplatform.jobs.provider.arbeitnow;
+
+import com.raghav.jobplatform.jobs.dto.JobResponse;
+import com.raghav.jobplatform.jobs.provider.JobProvider;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Component
+public class ArbeitnowProvider implements JobProvider {
+    private RestClient restClient;
+
+    public ArbeitnowProvider(RestClient restClient) {
+        this.restClient = restClient;
+    }
+
+
+    @Override
+    public List<JobResponse>  searchJobs(String keyword)
+    {
+
+        var response = restClient.get()
+                .uri("https://www.arbeitnow.com/api/job-board-api")
+                .retrieve()
+                .body(ArbeitnowResponse.class);
+        if (response == null) {
+            return List.of();
+        }
+
+        return response.data()
+                .stream()
+                .filter(job ->
+                        job.title().toLowerCase()
+                                .contains(keyword.toLowerCase())
+                )
+                .map(job -> new JobResponse(
+                        job.slug(),
+                        job.title(),
+                        job.company_name(),
+                        job.location(),
+                        job.description(),
+                        job.url(),
+                        job.remote(),
+                        job.tags() == null
+                                ? ""
+                                : String.join(",", job.tags())
+                ))
+                .toList();
+
+    }
+
+    @Override
+    public String getProviderName()
+    {
+        return "ARBEITNOW";
+    }
+}
