@@ -38,4 +38,21 @@ public class JobSpecification {
             );
         };
     }
+
+    public static Specification<JobEntity> hasRemote(
+            Boolean remote
+    ) {
+
+        return (root, query, cb) -> {
+
+            if (remote == null) {
+                return cb.conjunction();
+            }
+
+            return cb.equal(
+                    root.get("remote"),
+                    remote
+            );
+        };
+    }
 }

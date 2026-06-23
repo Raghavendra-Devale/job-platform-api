@@ -9,6 +9,7 @@ import com.raghav.jobplatform.jobs.repository.JobRepository;
 import com.raghav.jobplatform.jobs.specification.JobSpecification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -53,18 +54,27 @@ public class JobService {
     ) {
 
         var specification =
-                JobSpecification.hasKeyword(
-                                request.keyword()
-                        )
-                        .and(
-                                JobSpecification.hasLocation(
-                                        request.location()
-                                )
-                        );
+                JobSpecification.hasKeyword(request.keyword())
+                        .and(JobSpecification.hasLocation(request.location()))
+                        .and(JobSpecification.hasRemote(request.remote()));
+
+        Sort sort = Sort.by(
+                Sort.Direction.fromString(
+                        request.sortDirection() == null
+                                ? "DESC"
+                                : request.sortDirection()
+                ),
+                request.sortBy() == null
+                        ? "createdAt"
+                        : request.sortBy()
+        );
+
+        PageRequest pageable =
+                PageRequest.of(page, size, sort);
 
         return jobRepository.findAll(
                         specification,
-                        PageRequest.of(page, size)
+                        pageable
                 )
                 .map(job -> new JobListResponse(
                         job.getId(),

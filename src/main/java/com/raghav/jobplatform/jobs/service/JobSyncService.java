@@ -9,35 +9,48 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class JobSyncService {
-    private final ArbeitnowProvider arbeitnowProvider;
+    private final List<JobProvider> jobProviders;
     private final JobRepository jobRepository;
 
     public void syncJobs() {
-        var jobs = arbeitnowProvider.searchJobs("");
-        var entities = jobs.stream()
-                .filter(job -> !jobRepository.existsByExternalJobId(job.slug()))
-                .map(job -> {
-                    JobEntity entity = new JobEntity();
-                    entity.setTitle(job.title());
-                    entity.setCompany(job.company());
-                    entity.setLocation(job.location());
-                    entity.setDescription(job.description());
-                    entity.setExternalJobId(job.slug());
-                    entity.setSource("ARBEITNOW");
-                    entity.setCreatedAt(LocalDateTime.now());
-                    entity.setDescription(job.description());
-                    entity.setApplyUrl(job.applyUrl());
-                    entity.setRemote(job.remote());
-                    entity.setTags(job.tags());
-                    return entity;
-                })
-                .toList();
-        System.out.println("Jobs Synced: " + entities.size());
-        jobRepository.saveAll(entities);
+
+        for (JobProvider provider : jobProviders) {
+
+            var jobs = provider.searchJobs("");
+
+            var entities = jobs.stream()
+                    .filter(job ->
+                            !jobRepository.existsByExternalJobId(
+                                    job.slug()
+                            )
+                    )
+                    .map(job -> JobEntity.builder()
+                            .externalJobId(job.slug())
+                            .title(job.title())
+                            .company(job.company())
+                            .location(job.location())
+                            .description(job.description())
+                            .applyUrl(job.applyUrl())
+                            .remote(job.remote())
+                            .tags(job.tags())
+                            .source(provider.getProviderName())
+                            .createdAt(LocalDateTime.now())
+                            .build())
+                    .toList();
+
+            jobRepository.saveAll(entities);
+
+            System.out.println(
+                    provider.getProviderName()
+                            + " Jobs Synced: "
+                            + entities.size()
+            );
+        }
     }
 
 }

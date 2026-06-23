@@ -7,6 +7,8 @@ public record JobSearchRequest(
         String salaryMin,
         String salaryMax,
         Integer page,
-        Integer size
+        Integer size,
+        String sortBy,
+        String sortDirection
 ) {
 }
