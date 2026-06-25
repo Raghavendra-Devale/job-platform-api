@@ -9,6 +9,7 @@ public record JobSearchRequest(
         Integer page,
         Integer size,
         String sortBy,
-        String sortDirection
+        String sortDirection,
+        String provider
 ) {
 }

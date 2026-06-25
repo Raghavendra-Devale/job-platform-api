@@ -28,7 +28,7 @@ public class ArbeitnowProvider implements JobProvider {
         if (response == null) {
             return List.of();
         }
-
+        System.out.println("ARBEITNOW response count = " + response.data().size());
         return response.data()
                 .stream()
                 .filter(job ->
@@ -52,8 +52,26 @@ public class ArbeitnowProvider implements JobProvider {
     }
 
     @Override
+    public List<JobResponse> fetchAllJobs() {
+        return searchJobs("");
+    }
+
+    @Override
     public String getProviderName()
     {
         return "ARBEITNOW";
+    }
+
+    @Override
+    public boolean isHealthy() {
+        try {
+            restClient.get()
+                    .uri("https://www.arbeitnow.com/api/job-board-api")
+                    .retrieve()
+                    .toBodilessEntity();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

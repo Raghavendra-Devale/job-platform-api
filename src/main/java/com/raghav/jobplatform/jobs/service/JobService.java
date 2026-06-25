@@ -1,43 +1,47 @@
 package com.raghav.jobplatform.jobs.service;
 
-import com.raghav.jobplatform.jobs.client.ExternalJobClient;
 import com.raghav.jobplatform.jobs.dto.JobListResponse;
 import com.raghav.jobplatform.jobs.dto.JobResponse;
 import com.raghav.jobplatform.jobs.dto.JobSearchRequest;
+import com.raghav.jobplatform.jobs.dto.JobSearchResponse;
 import com.raghav.jobplatform.jobs.provider.JobProvider;
 import com.raghav.jobplatform.jobs.repository.JobRepository;
-import com.raghav.jobplatform.jobs.specification.JobSpecification;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @Service
 public class JobService {
 
-    private final JobProvider jobProvider;
+    private final List<JobProvider> jobProviders;
     private final JobRepository jobRepository;
 
     public JobService(
-            JobProvider jobProvider,
+            List<JobProvider> jobProviders,
             JobRepository jobRepository) {
-        this.jobProvider = jobProvider;
+        this.jobProviders = jobProviders;
         this.jobRepository = jobRepository;
     }
 
     public List<JobResponse> searchJobs(String keyword) {
+        jobProviders.forEach(provider ->
+                log.info("Searching jobs from {}", provider.getProviderName()));
 
-        return jobProvider.searchJobs(keyword);
+        return jobProviders.stream()
+                .flatMap(provider ->
+                        provider.searchJobs(keyword).stream())
+                .toList();
     }
 
     public Page<JobListResponse> getJobs(int page, int size) {
-        return jobRepository.findAll(
-                PageRequest.of(page, size)
-        )
+        return jobRepository.findAll(PageRequest.of(page, size))
                 .map(job -> new JobListResponse(
                         job.getId(),
                         job.getTitle(),
@@ -47,46 +51,51 @@ public class JobService {
                 ));
     }
 
-    public Page<JobListResponse> searchJobs(
+    public JobSearchResponse searchJobs(
             JobSearchRequest request,
             int page,
             int size
     ) {
+        String keyword = request.keyword() != null ? request.keyword().trim() : "";
+        String location = request.location() != null ? request.location().trim() : "";
+        String provider = request.provider() != null ? request.provider().trim() : "";
 
-        var specification =
-                JobSpecification.hasKeyword(request.keyword())
-                        .and(JobSpecification.hasLocation(request.location()))
-                        .and(JobSpecification.hasRemote(request.remote()));
-
-        Sort sort = Sort.by(
-                Sort.Direction.fromString(
-                        request.sortDirection() == null
-                                ? "DESC"
-                                : request.sortDirection()
-                ),
-                request.sortBy() == null
-                        ? "createdAt"
-                        : request.sortBy()
+        Page<JobEntity> entityPage = jobRepository.searchJobsRanked(
+                keyword,
+                location,
+                provider,
+                PageRequest.of(page, size)
         );
 
-        PageRequest pageable =
-                PageRequest.of(page, size, sort);
-
-        return jobRepository.findAll(
-                        specification,
-                        pageable
-                )
+        List<JobListResponse> content = entityPage.stream()
                 .map(job -> new JobListResponse(
                         job.getId(),
                         job.getTitle(),
                         job.getCompany(),
                         job.getLocation(),
                         job.getSource()
-                ));
+                ))
+                .toList();
+
+        List<String> distinctProviders = jobRepository.findDistinctSources();
+        List<String> distinctLocations = jobRepository.findDistinctLocations();
+
+        Map<String, List<String>> filters = Map.of(
+                "providers", distinctProviders,
+                "locations", distinctLocations
+        );
+
+        return new JobSearchResponse(
+                content,
+                filters,
+                entityPage.getTotalElements(),
+                entityPage.getTotalPages(),
+                entityPage.getSize(),
+                entityPage.getNumber()
+        );
     }
 
     public JobResponse getJobById(Long id) {
-
         var job = jobRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
@@ -103,8 +112,5 @@ public class JobService {
                 job.getRemote(),
                 job.getTags()
         );
-
-
     }
-
 }
