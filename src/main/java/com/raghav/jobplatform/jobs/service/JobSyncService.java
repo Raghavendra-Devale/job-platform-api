@@ -45,10 +45,12 @@ public class JobSyncService {
                     if (existingOpt.isPresent()) {
                         JobEntity entity = existingOpt.get();
                         entity.setTitle(job.title());
+                        entity.setCompany(job.company());
                         entity.setDescription(job.description());
                         entity.setApplyUrl(job.applyUrl());
                         entity.setTags(job.tags());
                         entity.setLocation(job.location());
+                        entity.setRemote(job.remote());
                         entity.setLastSeenAt(LocalDateTime.now());
                         entity.setActive(true);
                         jobRepository.save(entity);

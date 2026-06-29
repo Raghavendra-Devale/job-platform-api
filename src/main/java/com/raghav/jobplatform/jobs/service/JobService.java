@@ -4,6 +4,7 @@ import com.raghav.jobplatform.jobs.dto.JobListResponse;
 import com.raghav.jobplatform.jobs.dto.JobResponse;
 import com.raghav.jobplatform.jobs.dto.JobSearchRequest;
 import com.raghav.jobplatform.jobs.dto.JobSearchResponse;
+import com.raghav.jobplatform.jobs.entity.JobEntity;
 import com.raghav.jobplatform.jobs.provider.JobProvider;
 import com.raghav.jobplatform.jobs.repository.JobRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +48,10 @@ public class JobService {
                         job.getTitle(),
                         job.getCompany(),
                         job.getLocation(),
-                        job.getSource()
+                        job.getSource(),
+                        job.getRemote(),
+                        job.getTags(),
+                        job.getCreatedAt()
                 ));
     }
 
@@ -59,13 +63,63 @@ public class JobService {
         String keyword = request.keyword() != null ? request.keyword().trim() : "";
         String location = request.location() != null ? request.location().trim() : "";
         String provider = request.provider() != null ? request.provider().trim() : "";
+        Boolean remote = request.remote();
 
-        Page<JobEntity> entityPage = jobRepository.searchJobsRanked(
-                keyword,
-                location,
-                provider,
-                PageRequest.of(page, size)
-        );
+        Integer salaryMin = null;
+        if (request.salaryMin() != null && !request.salaryMin().isBlank()) {
+            try {
+                salaryMin = Integer.parseInt(request.salaryMin().trim().replaceAll("[^\\d]", ""));
+            } catch (NumberFormatException e) {
+                log.warn("Invalid salaryMin format: {}", request.salaryMin());
+            }
+        }
+
+        Integer salaryMax = null;
+        if (request.salaryMax() != null && !request.salaryMax().isBlank()) {
+            try {
+                salaryMax = Integer.parseInt(request.salaryMax().trim().replaceAll("[^\\d]", ""));
+            } catch (NumberFormatException e) {
+                log.warn("Invalid salaryMax format: {}", request.salaryMax());
+            }
+        }
+
+        Page<JobEntity> entityPage;
+
+        // Check if custom sorting is requested
+        if (request.sortBy() != null && !request.sortBy().isBlank()) {
+            // Whitelist sort fields to prevent SQL injection/errors
+            String sortBy = "createdAt"; // default fallback
+            String requestedSort = request.sortBy().trim();
+            if (List.of("createdAt", "salaryMin", "salaryMax", "title", "company", "location", "source").contains(requestedSort)) {
+                sortBy = requestedSort;
+            }
+
+            org.springframework.data.domain.Sort.Direction direction = org.springframework.data.domain.Sort.Direction.DESC; // default
+            if (request.sortDirection() != null && "asc".equalsIgnoreCase(request.sortDirection().trim())) {
+                direction = org.springframework.data.domain.Sort.Direction.ASC;
+            }
+
+            entityPage = jobRepository.searchJobs(
+                    keyword,
+                    location,
+                    provider,
+                    remote,
+                    salaryMin,
+                    salaryMax,
+                    PageRequest.of(page, size, org.springframework.data.domain.Sort.by(direction, sortBy))
+            );
+        } else {
+            // Default: keyword match weighted ranking
+            entityPage = jobRepository.searchJobsRanked(
+                    keyword,
+                    location,
+                    provider,
+                    remote,
+                    salaryMin,
+                    salaryMax,
+                    PageRequest.of(page, size)
+            );
+        }
 
         List<JobListResponse> content = entityPage.stream()
                 .map(job -> new JobListResponse(
@@ -73,7 +127,10 @@ public class JobService {
                         job.getTitle(),
                         job.getCompany(),
                         job.getLocation(),
-                        job.getSource()
+                        job.getSource(),
+                        job.getRemote(),
+                        job.getTags(),
+                        job.getCreatedAt()
                 ))
                 .toList();
 
