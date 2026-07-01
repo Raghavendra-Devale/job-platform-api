@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"password", "resume"})
+@ToString(exclude = {"password"})
 public class UserEntity {
 
     @Id
@@ -32,12 +32,6 @@ public class UserEntity {
 
     @Column(nullable = false)
     private String role; // e.g. "USER", "ADMIN"
-
-    @Column(name = "resume", columnDefinition = "bytea")
-    private byte[] resume;
-
-    @Column(name = "resume_file_name")
-    private String resumeFileName;
 
     @Column(name = "work_preference")
     private String workPreference; // e.g. "REMOTE", "ONSITE", "HYBRID", "ANY"

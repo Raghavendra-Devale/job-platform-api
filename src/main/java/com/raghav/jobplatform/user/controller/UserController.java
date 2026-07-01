@@ -7,9 +7,11 @@ import com.raghav.jobplatform.jobs.repository.JobRepository;
 import com.raghav.jobplatform.user.entity.RecentViewEntity;
 import com.raghav.jobplatform.user.entity.SavedJobEntity;
 import com.raghav.jobplatform.user.entity.UserEntity;
+import com.raghav.jobplatform.user.entity.ResumeEntity;
 import com.raghav.jobplatform.user.repository.RecentViewRepository;
 import com.raghav.jobplatform.user.repository.SavedJobRepository;
 import com.raghav.jobplatform.user.repository.UserRepository;
+import com.raghav.jobplatform.user.repository.ResumeRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,6 +36,7 @@ public class UserController {
     private final JobRepository jobRepository;
     private final SavedJobRepository savedJobRepository;
     private final RecentViewRepository recentViewRepository;
+    private final ResumeRepository resumeRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserController(
@@ -41,12 +44,14 @@ public class UserController {
             JobRepository jobRepository,
             SavedJobRepository savedJobRepository,
             RecentViewRepository recentViewRepository,
+            ResumeRepository resumeRepository,
             PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.savedJobRepository = savedJobRepository;
         this.recentViewRepository = recentViewRepository;
+        this.resumeRepository = resumeRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -63,12 +68,15 @@ public class UserController {
     @GetMapping("/users/profile")
     public ResponseEntity<UserResponse> getProfile() {
         UserEntity user = getAuthenticatedUser();
+        String activeResumeName = resumeRepository.findByUserAndIsActiveTrue(user)
+                .map(ResumeEntity::getResumeName)
+                .orElse(null);
         return ResponseEntity.ok(new UserResponse(
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
                 user.getRole(),
-                user.getResumeFileName(),
+                activeResumeName,
                 user.getWorkPreference(),
                 user.getAlertEnabled(),
                 user.getCreatedAt()
@@ -112,73 +120,6 @@ public class UserController {
         userRepository.save(user);
 
         return ResponseEntity.ok(Map.of("message", "Preferences updated successfully"));
-    }
-
-    @DeleteMapping("/users/profile/resume")
-    public ResponseEntity<?> deleteResume() {
-        UserEntity user = getAuthenticatedUser();
-        user.setResume(null);
-        user.setResumeFileName(null);
-        userRepository.save(user);
-        return ResponseEntity.ok(Map.of("message", "Resume deleted successfully"));
-    }
-
-    @PostMapping(value = "/users/profile/resume", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadResume(@RequestParam("file") MultipartFile file) throws IOException {
-        UserEntity user = getAuthenticatedUser();
-
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "File is empty"));
-        }
-
-        // Limit size to 5MB
-        if (file.getSize() > 5 * 1024 * 1024) {
-            return ResponseEntity.badRequest().body(Map.of("error", "File size exceeds limit of 5MB"));
-        }
-
-        // Check content type
-        String contentType = file.getContentType();
-        if (contentType == null || (!contentType.equals("application/pdf") &&
-                !contentType.equals("application/msword") &&
-                !contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Only PDF and Word documents are allowed"));
-        }
-
-        user.setResume(file.getBytes());
-        user.setResumeFileName(file.getOriginalFilename());
-        userRepository.save(user);
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Resume uploaded successfully",
-                "fileName", file.getOriginalFilename()
-        ));
-    }
-
-    @GetMapping("/users/profile/resume/download")
-    public ResponseEntity<byte[]> downloadResume() {
-        UserEntity user = getAuthenticatedUser();
-
-        if (user.getResume() == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        // Detect correct mime type
-        String contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
-        String fileName = user.getResumeFileName();
-        if (fileName != null) {
-            if (fileName.toLowerCase().endsWith(".pdf")) {
-                contentType = MediaType.APPLICATION_PDF_VALUE;
-            } else if (fileName.toLowerCase().endsWith(".doc")) {
-                contentType = "application/msword";
-            } else if (fileName.toLowerCase().endsWith(".docx")) {
-                contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-            }
-        }
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + user.getResumeFileName() + "\"")
-                .header(HttpHeaders.CONTENT_TYPE, contentType)
-                .body(user.getResume());
     }
 
     // ── Saved Jobs ───────────────────────────────────────────────────────
