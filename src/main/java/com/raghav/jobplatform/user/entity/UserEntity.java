@@ -39,6 +39,12 @@ public class UserEntity {
     @Column(name = "resume_file_name")
     private String resumeFileName;
 
+    @Column(name = "work_preference")
+    private String workPreference; // e.g. "REMOTE", "ONSITE", "HYBRID", "ANY"
+
+    @Column(name = "alert_enabled")
+    private Boolean alertEnabled;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -49,6 +55,12 @@ public class UserEntity {
         }
         if (role == null) {
             role = "USER";
+        }
+        if (workPreference == null) {
+            workPreference = "ANY";
+        }
+        if (alertEnabled == null) {
+            alertEnabled = true;
         }
     }
 }

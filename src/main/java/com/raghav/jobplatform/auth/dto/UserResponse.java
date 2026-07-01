@@ -8,5 +8,7 @@ public record UserResponse(
         String email,
         String role,
         String resumeFileName,
+        String workPreference,
+        Boolean alertEnabled,
         LocalDateTime createdAt
 ) {}

@@ -3,17 +3,19 @@ package com.raghav.jobplatform.auth.controller;
 import com.raghav.jobplatform.auth.dto.LoginRequest;
 import com.raghav.jobplatform.auth.dto.LoginResponse;
 import com.raghav.jobplatform.auth.dto.RegisterRequest;
-import com.raghav.jobplatform.auth.dto.UserResponse;
 import com.raghav.jobplatform.config.JwtService;
 import com.raghav.jobplatform.user.entity.UserEntity;
 import com.raghav.jobplatform.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -24,10 +26,19 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(UserRepository userRepository, JwtService jwtService) {
+    public AuthController(
+            UserRepository userRepository,
+            JwtService jwtService,
+            AuthenticationManager authenticationManager,
+            PasswordEncoder passwordEncoder
+    ) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/register")
@@ -36,8 +47,8 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "Email is already in use"));
         }
 
-        // Secure password hashing with BCrypt
-        String hashedPassword = BCrypt.hashpw(request.password(), BCrypt.gensalt());
+        // Secure password hashing with PasswordEncoder bean
+        String hashedPassword = passwordEncoder.encode(request.password());
 
         UserEntity user = UserEntity.builder()
                 .name(request.name())
@@ -53,12 +64,13 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-        UserEntity user = userRepository.findByEmail(request.email())
-                .orElse(null);
+        // Authenticate credentials using standard AuthenticationManager
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.email(), request.password())
+        );
 
-        if (user == null || !BCrypt.checkpw(request.password(), user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid email or password"));
-        }
+        // Fetch user from DB (guaranteed to exist since authentication succeeded)
+        UserEntity user = userRepository.findByEmail(request.email()).orElseThrow();
 
         String token = jwtService.generateToken(user.getEmail());
 
