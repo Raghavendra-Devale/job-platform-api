@@ -1,4 +1,35 @@
+# .gitignore for job-platform-api (Java Maven backend)
+# IDE and editor files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.factorypath
+.settings/
+
+# Maven build output
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# Help files
 HELP.md
+
+# Temporary folders
+/tmp/
+
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
