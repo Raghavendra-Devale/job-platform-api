@@ -92,6 +92,7 @@ public class DashboardController {
                         app.getJob().getLocation(),
                         app.getStatus(),
                         app.getAppliedAt(),
+                        app.getUpdatedAt(),
                         app.getResume() != null ? app.getResume().getResumeName() : null
                 ))
                 .collect(Collectors.toList());
@@ -117,14 +118,14 @@ public class DashboardController {
                             .status("APPLIED")
                             .appliedAt(LocalDateTime.now())
                             .build();
-                    
+
                     // Log the activity
                     activityService.log(
-                            user, 
-                            "APPLICATION_SUBMITTED", 
+                            user,
+                            "APPLICATION_SUBMITTED",
                             "Applied to " + job.getTitle() + " at " + job.getCompany()
                     );
-                    
+
                     return jobApplicationRepository.save(newApp);
                 });
 
@@ -136,6 +137,7 @@ public class DashboardController {
                 application.getJob().getLocation(),
                 application.getStatus(),
                 application.getAppliedAt(),
+                application.getUpdatedAt(),
                 application.getResume() != null ? application.getResume().getResumeName() : null
         ));
     }
@@ -152,8 +154,12 @@ public class DashboardController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Unauthorized access"));
         }
 
-        String oldStatus = application.getStatus();
-        String newStatus = request.status().toUpperCase(); // APPLIED, INTERVIEW, OFFER, REJECTED
+        String newStatus = request.status().toUpperCase(); // APPLIED, SCREENING, INTERVIEW, OFFER, REJECTED
+        java.util.Set<String> VALID_STATUSES = java.util.Set.of("APPLIED", "SCREENING", "INTERVIEW", "OFFER", "REJECTED");
+        if (!VALID_STATUSES.contains(newStatus)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid status: " + newStatus));
+        }
+
         application.setStatus(newStatus);
         jobApplicationRepository.save(application);
 
@@ -161,7 +167,7 @@ public class DashboardController {
         activityService.log(
                 user,
                 "APPLICATION_UPDATED",
-                "Updated application status for " + application.getJob().getTitle() + " to " + newStatus
+                "Moved " + application.getJob().getTitle() + " to " + newStatus
         );
 
         return ResponseEntity.ok(Map.of("message", "Application status updated successfully"));

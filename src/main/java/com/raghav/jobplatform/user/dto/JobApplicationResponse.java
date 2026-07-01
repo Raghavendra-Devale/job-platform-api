@@ -10,5 +10,6 @@ public record JobApplicationResponse(
         String location,
         String status,
         LocalDateTime appliedAt,
+        LocalDateTime updatedAt,
         String resumeName
 ) {}

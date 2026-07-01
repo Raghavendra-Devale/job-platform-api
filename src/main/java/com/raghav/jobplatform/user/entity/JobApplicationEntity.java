@@ -32,8 +32,22 @@ public class JobApplicationEntity {
     private ResumeEntity resume;
 
     @Column(nullable = false)
-    private String status; // APPLIED, INTERVIEW, OFFER, REJECTED
+    private String status; // APPLIED, SCREENING, INTERVIEW, OFFER, REJECTED
 
     @Column(name = "applied_at", nullable = false)
     private LocalDateTime appliedAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        appliedAt = appliedAt != null ? appliedAt : LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
