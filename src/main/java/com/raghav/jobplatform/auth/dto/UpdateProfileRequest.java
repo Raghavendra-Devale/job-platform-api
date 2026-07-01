@@ -11,5 +11,16 @@ public record UpdateProfileRequest(
 
         @NotBlank(message = "Email is required")
         @Email(message = "Invalid email format")
-        String email
+        String email,
+
+        @jakarta.validation.constraints.Min(value = 0, message = "Experience cannot be negative")
+        Integer experience,
+
+        String currentRole,
+        String bio,
+        String linkedin,
+        String github,
+        String portfolio,
+        String phone,
+        String location
 ) {}

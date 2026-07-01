@@ -8,5 +8,11 @@ public record UpdatePreferencesRequest(
         String workPreference,
 
         @NotNull(message = "Alert preference status is required")
-        Boolean alertEnabled
+        Boolean alertEnabled,
+
+        String preferredRoles,
+        String preferredLocations,
+        Boolean remoteOnly,
+        String salaryRange,
+        String jobTypes
 ) {}

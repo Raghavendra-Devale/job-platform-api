@@ -10,6 +10,9 @@ public record JobListResponse(
         String source,
         Boolean remote,
         String tags,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        String salary,
+        String jobType,
+        String applyUrl
 ) {
 }

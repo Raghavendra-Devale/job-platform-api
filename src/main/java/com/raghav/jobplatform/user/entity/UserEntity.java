@@ -39,6 +39,35 @@ public class UserEntity {
     @Column(name = "alert_enabled")
     private Boolean alertEnabled;
 
+    // Profile fields
+    private Integer experience;
+
+    @Column(name = "current_role_title")
+    private String currentRole;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    private String linkedin;
+    private String github;
+    private String portfolio;
+
+    // Preference fields
+    @Column(name = "preferred_roles")
+    private String preferredRoles;
+
+    @Column(name = "preferred_locations")
+    private String preferredLocations;
+
+    @Column(name = "remote_only")
+    private Boolean remoteOnly;
+
+    @Column(name = "salary_range")
+    private String salaryRange;
+
+    @Column(name = "job_types")
+    private String jobTypes;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

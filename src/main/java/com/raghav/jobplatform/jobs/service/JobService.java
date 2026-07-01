@@ -51,7 +51,10 @@ public class JobService {
                         job.getSource(),
                         job.getRemote(),
                         job.getTags(),
-                        job.getCreatedAt()
+                        job.getCreatedAt(),
+                        job.getSalary(),
+                        job.getJobType(),
+                        job.getApplyUrl()
                 ));
     }
 
@@ -64,6 +67,9 @@ public class JobService {
         String location = request.location() != null ? request.location().trim() : "";
         String provider = request.provider() != null ? request.provider().trim() : "";
         Boolean remote = request.remote();
+        String experience = request.experience() != null ? request.experience().trim() : "";
+        String jobType = request.jobType() != null ? request.jobType().trim() : "";
+        String company = request.company() != null ? request.company().trim() : "";
 
         Integer salaryMin = null;
         if (request.salaryMin() != null && !request.salaryMin().isBlank()) {
@@ -106,6 +112,9 @@ public class JobService {
                     remote,
                     salaryMin,
                     salaryMax,
+                    experience,
+                    jobType,
+                    company,
                     PageRequest.of(page, size, org.springframework.data.domain.Sort.by(direction, sortBy))
             );
         } else {
@@ -117,6 +126,9 @@ public class JobService {
                     remote,
                     salaryMin,
                     salaryMax,
+                    experience,
+                    jobType,
+                    company,
                     PageRequest.of(page, size)
             );
         }
@@ -130,16 +142,21 @@ public class JobService {
                         job.getSource(),
                         job.getRemote(),
                         job.getTags(),
-                        job.getCreatedAt()
+                        job.getCreatedAt(),
+                        job.getSalary(),
+                        job.getJobType(),
+                        job.getApplyUrl()
                 ))
                 .toList();
 
         List<String> distinctProviders = jobRepository.findDistinctSources();
         List<String> distinctLocations = jobRepository.findDistinctLocations();
+        List<String> distinctJobTypes = jobRepository.findDistinctJobTypes();
 
         Map<String, List<String>> filters = Map.of(
                 "providers", distinctProviders,
-                "locations", distinctLocations
+                "locations", distinctLocations,
+                "jobTypes", distinctJobTypes
         );
 
         return new JobSearchResponse(

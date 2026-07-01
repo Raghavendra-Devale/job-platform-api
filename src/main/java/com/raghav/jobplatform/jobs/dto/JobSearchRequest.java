@@ -10,6 +10,9 @@ public record JobSearchRequest(
         Integer size,
         String sortBy,
         String sortDirection,
-        String provider
+        String provider,
+        String experience,
+        String jobType,
+        String company
 ) {
 }

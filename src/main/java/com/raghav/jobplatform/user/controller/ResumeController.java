@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.raghav.jobplatform.user.service.ActivityService;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -28,10 +30,12 @@ public class ResumeController {
 
     private final UserRepository userRepository;
     private final ResumeRepository resumeRepository;
+    private final ActivityService activityService;
 
-    public ResumeController(UserRepository userRepository, ResumeRepository resumeRepository) {
+    public ResumeController(UserRepository userRepository, ResumeRepository resumeRepository, ActivityService activityService) {
         this.userRepository = userRepository;
         this.resumeRepository = resumeRepository;
+        this.activityService = activityService;
     }
 
     private UserEntity getAuthenticatedUser() {
@@ -94,6 +98,8 @@ public class ResumeController {
 
         resumeRepository.save(resume);
 
+        activityService.log(user, "RESUME_UPLOADED", "Uploaded resume '" + resume.getResumeName() + "'");
+
         return ResponseEntity.status(HttpStatus.CREATED).body(new ResumeResponse(
                 resume.getId(),
                 resume.getResumeName(),
@@ -125,6 +131,8 @@ public class ResumeController {
         // Activate target resume
         resume.setActive(true);
         resumeRepository.save(resume);
+
+        activityService.log(user, "RESUME_ACTIVATED", "Activated resume '" + resume.getResumeName() + "'");
 
         return ResponseEntity.ok(Map.of("message", "Resume activated successfully"));
     }
@@ -172,18 +180,11 @@ public class ResumeController {
         ResumeEntity resume = resumeRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume not found"));
 
-        boolean wasActive = resume.isActive();
-        resumeRepository.delete(resume);
-
-        // If we deleted the active resume, auto-activate the next most recently updated remaining resume
-        if (wasActive) {
-            List<ResumeEntity> remaining = resumeRepository.findByUserOrderByUpdatedAtDesc(user);
-            if (!remaining.isEmpty()) {
-                ResumeEntity nextActive = remaining.get(0);
-                nextActive.setActive(true);
-                resumeRepository.save(nextActive);
-            }
+        if (resume.isActive()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Active resume cannot be deleted. Please activate another resume first."));
         }
+
+        resumeRepository.delete(resume);
 
         return ResponseEntity.ok(Map.of("message", "Resume deleted successfully"));
     }

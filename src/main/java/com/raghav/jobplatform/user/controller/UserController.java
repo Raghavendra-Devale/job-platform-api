@@ -8,10 +8,14 @@ import com.raghav.jobplatform.user.entity.RecentViewEntity;
 import com.raghav.jobplatform.user.entity.SavedJobEntity;
 import com.raghav.jobplatform.user.entity.UserEntity;
 import com.raghav.jobplatform.user.entity.ResumeEntity;
+import com.raghav.jobplatform.user.entity.UserProfileEntity;
+import com.raghav.jobplatform.user.entity.UserPreferencesEntity;
 import com.raghav.jobplatform.user.repository.RecentViewRepository;
 import com.raghav.jobplatform.user.repository.SavedJobRepository;
 import com.raghav.jobplatform.user.repository.UserRepository;
 import com.raghav.jobplatform.user.repository.ResumeRepository;
+import com.raghav.jobplatform.user.repository.UserProfileRepository;
+import com.raghav.jobplatform.user.repository.UserPreferencesRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -37,7 +41,10 @@ public class UserController {
     private final SavedJobRepository savedJobRepository;
     private final RecentViewRepository recentViewRepository;
     private final ResumeRepository resumeRepository;
+    private final UserProfileRepository userProfileRepository;
+    private final UserPreferencesRepository userPreferencesRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.raghav.jobplatform.user.service.ActivityService activityService;
 
     public UserController(
             UserRepository userRepository,
@@ -45,14 +52,20 @@ public class UserController {
             SavedJobRepository savedJobRepository,
             RecentViewRepository recentViewRepository,
             ResumeRepository resumeRepository,
-            PasswordEncoder passwordEncoder
+            UserProfileRepository userProfileRepository,
+            UserPreferencesRepository userPreferencesRepository,
+            PasswordEncoder passwordEncoder,
+            com.raghav.jobplatform.user.service.ActivityService activityService
     ) {
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.savedJobRepository = savedJobRepository;
         this.recentViewRepository = recentViewRepository;
         this.resumeRepository = resumeRepository;
+        this.userProfileRepository = userProfileRepository;
+        this.userPreferencesRepository = userPreferencesRepository;
         this.passwordEncoder = passwordEncoder;
+        this.activityService = activityService;
     }
 
     private UserEntity getAuthenticatedUser() {
@@ -71,15 +84,57 @@ public class UserController {
         String activeResumeName = resumeRepository.findByUserAndIsActiveTrue(user)
                 .map(ResumeEntity::getResumeName)
                 .orElse(null);
+
+        // Fetch or lazily create User Profile Entity
+        UserProfileEntity profile = userProfileRepository.findByUser(user)
+                .orElseGet(() -> userProfileRepository.save(
+                        UserProfileEntity.builder()
+                                .user(user)
+                                .name(user.getName())
+                                .experience(user.getExperience())
+                                .currentRole(user.getCurrentRole())
+                                .bio(user.getBio())
+                                .linkedin(user.getLinkedin())
+                                .github(user.getGithub())
+                                .portfolio(user.getPortfolio())
+                                .build()
+                ));
+
+        // Fetch or lazily create User Preferences Entity
+        UserPreferencesEntity preferences = userPreferencesRepository.findByUser(user)
+                .orElseGet(() -> userPreferencesRepository.save(
+                        UserPreferencesEntity.builder()
+                                .user(user)
+                                .preferredRoles(user.getPreferredRoles())
+                                .preferredLocations(user.getPreferredLocations())
+                                .remoteOnly(user.getRemoteOnly())
+                                .salaryRange(user.getSalaryRange())
+                                .jobTypes(user.getJobTypes())
+                                .build()
+                ));
+
         return ResponseEntity.ok(new UserResponse(
                 user.getId(),
-                user.getName(),
+                profile.getName() != null ? profile.getName() : user.getName(),
                 user.getEmail(),
                 user.getRole(),
                 activeResumeName,
                 user.getWorkPreference(),
                 user.getAlertEnabled(),
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                profile.getExperience(),
+                profile.getCurrentRole(),
+                profile.getBio(),
+                profile.getLinkedin(),
+                profile.getGithub(),
+                profile.getPortfolio(),
+                profile.getPhone(),
+                profile.getLocation(),
+                preferences.getPreferredRoles(),
+                preferences.getPreferredLocations(),
+                preferences.getRemoteOnly(),
+                preferences.getSalaryRange(),
+                preferences.getJobTypes()
         ));
     }
 
@@ -94,6 +149,20 @@ public class UserController {
         user.setName(request.name());
         user.setEmail(request.email());
         userRepository.save(user);
+
+        // Save to dedicated Profile Entity
+        UserProfileEntity profile = userProfileRepository.findByUser(user)
+                .orElseGet(() -> UserProfileEntity.builder().user(user).build());
+        profile.setName(request.name());
+        profile.setExperience(request.experience());
+        profile.setCurrentRole(request.currentRole());
+        profile.setBio(request.bio());
+        profile.setLinkedin(request.linkedin());
+        profile.setGithub(request.github());
+        profile.setPortfolio(request.portfolio());
+        profile.setPhone(request.phone());
+        profile.setLocation(request.location());
+        userProfileRepository.save(profile);
 
         return ResponseEntity.ok(Map.of("message", "Profile updated successfully"));
     }
@@ -119,6 +188,16 @@ public class UserController {
         user.setAlertEnabled(request.alertEnabled());
         userRepository.save(user);
 
+        // Save to dedicated Preferences Entity
+        UserPreferencesEntity preferences = userPreferencesRepository.findByUser(user)
+                .orElseGet(() -> UserPreferencesEntity.builder().user(user).build());
+        preferences.setPreferredRoles(request.preferredRoles());
+        preferences.setPreferredLocations(request.preferredLocations());
+        preferences.setRemoteOnly(request.remoteOnly());
+        preferences.setSalaryRange(request.salaryRange());
+        preferences.setJobTypes(request.jobTypes());
+        userPreferencesRepository.save(preferences);
+
         return ResponseEntity.ok(Map.of("message", "Preferences updated successfully"));
     }
 
@@ -141,6 +220,7 @@ public class UserController {
                 .build();
 
         savedJobRepository.save(savedJob);
+        activityService.log(user, "JOB_SAVED", "Saved job '" + job.getTitle() + " at " + job.getCompany() + "'");
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Job saved successfully"));
     }
 
@@ -218,7 +298,10 @@ public class UserController {
                 job.getSource(),
                 job.getRemote(),
                 job.getTags(),
-                job.getCreatedAt()
+                job.getCreatedAt(),
+                job.getSalary(),
+                job.getJobType(),
+                job.getApplyUrl()
         );
     }
 }
