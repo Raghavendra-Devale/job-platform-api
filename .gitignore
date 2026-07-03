@@ -62,3 +62,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Python / Virtual Environment (added to prevent accidental tracking)
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.python-version
+uv.lock
+*.py
+pyproject.toml
+

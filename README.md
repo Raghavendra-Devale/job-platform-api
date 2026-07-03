@@ -41,7 +41,6 @@ src/main/java/com/raghav/jobplatform/
 │   ├── SecurityConfig.java             # Spring Security & CORS config
 │   ├── JwtService.java                 # JWT generation & validation
 │   ├── JwtAuthenticationFilter.java    # JWT request filter
-│   ├── JwtInterceptor.java            # JWT interceptor for REST clients
 │   ├── CustomUserDetailsService.java   # UserDetailsService implementation
 │   ├── RestClientConfig.java           # External HTTP client config
 │   └── JobApiProperties.java           # External API config properties
