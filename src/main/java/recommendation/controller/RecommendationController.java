@@ -31,7 +31,11 @@ public class RecommendationController {
 
     @PostMapping
     public ResponseEntity<RecommendationResponse> generateRecommendations(
-            @Valid @RequestBody JobSearchCriteria criteria) {
+            @RequestBody(required = false) JobSearchCriteria criteria) {
+        
+        if (criteria == null) {
+            criteria = JobSearchCriteria.builder().build();
+        }
         
         UserEntity user = getAuthenticatedUser();
         UUID userId = new UUID(0L, user.getId());

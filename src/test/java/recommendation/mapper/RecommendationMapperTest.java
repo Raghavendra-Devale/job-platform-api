@@ -83,4 +83,31 @@ class RecommendationMapperTest {
         // Assert
         assertThat(request.getJobs()).isEmpty();
     }
+
+    @Test
+    void toRequestFromDocuments_Success() {
+        // Arrange
+        UserEntity user = mock(UserEntity.class);
+        when(user.getName()).thenReturn("John Doe");
+
+        ResumeEntity resume = mock(ResumeEntity.class);
+        when(resume.getUser()).thenReturn(user);
+
+        JobDocument doc = JobDocument.builder()
+                .title("Software Engineer")
+                .company("Google")
+                .location("Mountain View")
+                .description("Write Java code")
+                .applyUrl("http://google.com/apply")
+                .employmentType("Full-time")
+                .build();
+
+        // Act
+        RecommendationRequest request = mapper.toRequestFromDocuments(resume, List.of(doc));
+
+        // Assert
+        assertThat(request.getResumeText()).contains("Resume of John Doe");
+        assertThat(request.getJobs()).hasSize(1);
+        assertThat(request.getJobs().get(0)).isSameAs(doc);
+    }
 }
