@@ -49,6 +49,19 @@ public class RecommendationOrchestrator {
         ResumeEntity resume;
         try {
             resume = resumeService.getLatestParsedResume(userId);
+            if (resume.getAiProcessingStatus() != com.raghav.jobplatform.user.entity.AiProcessingStatus.SUCCESS) {
+                log.info("Active resume ID {} has status {}. Running AI analysis dynamically...", resume.getId(), resume.getAiProcessingStatus());
+                try {
+                    resumeService.processResumeIntelligence(resume);
+                } catch (Exception e) {
+                    log.error("Dynamic AI resume processing failed for resume ID: {}", resume.getId(), e);
+                    throw new AiClientException("Failed to analyze resume via AI: " + e.getMessage(), e);
+                }
+                // Re-fetch to load all associations populated by AI processing
+                resume = resumeService.getLatestParsedResume(userId);
+            }
+        } catch (AiClientException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to load parsed resume for user: {}", userId, e);
             throw new ResumeNotFoundException("Latest parsed resume not found for user: " + userId, e);

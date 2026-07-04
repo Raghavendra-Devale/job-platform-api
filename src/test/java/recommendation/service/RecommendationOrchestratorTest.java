@@ -71,6 +71,7 @@ class RecommendationOrchestratorTest {
                 .build();
 
         ResumeEntity mockResume = mock(ResumeEntity.class);
+        when(mockResume.getAiProcessingStatus()).thenReturn(com.raghav.jobplatform.user.entity.AiProcessingStatus.SUCCESS);
         when(resumeService.getLatestParsedResume(userId)).thenReturn(mockResume);
 
         JobDocument expectedJob = JobDocument.builder()
@@ -125,6 +126,7 @@ class RecommendationOrchestratorTest {
         JobSearchCriteria criteria = JobSearchCriteria.builder().page(0).size(10).build();
 
         ResumeEntity mockResume = mock(ResumeEntity.class);
+        when(mockResume.getAiProcessingStatus()).thenReturn(com.raghav.jobplatform.user.entity.AiProcessingStatus.SUCCESS);
         when(resumeService.getLatestParsedResume(userId)).thenReturn(mockResume);
 
         when(newJobService.searchJobs(criteria)).thenReturn(Collections.emptyList());
@@ -147,6 +149,7 @@ class RecommendationOrchestratorTest {
         JobSearchCriteria criteria = JobSearchCriteria.builder().page(0).size(10).build();
 
         ResumeEntity mockResume = mock(ResumeEntity.class);
+        when(mockResume.getAiProcessingStatus()).thenReturn(com.raghav.jobplatform.user.entity.AiProcessingStatus.SUCCESS);
         when(resumeService.getLatestParsedResume(userId)).thenReturn(mockResume);
 
         JobDocument expectedJob = JobDocument.builder()
@@ -168,5 +171,43 @@ class RecommendationOrchestratorTest {
         assertThatThrownBy(() -> orchestrator.generateRecommendations(userId, criteria))
                 .isInstanceOf(AiClientException.class)
                 .hasMessageContaining("failure communicating with AI client");
+    }
+
+    @Test
+    void generateRecommendations_TriggersDynamicAiProcessing_WhenResumeStatusNotSuccess() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        JobSearchCriteria criteria = JobSearchCriteria.builder().page(0).size(10).build();
+
+        ResumeEntity mockResume = mock(ResumeEntity.class);
+        when(mockResume.getAiProcessingStatus()).thenReturn(com.raghav.jobplatform.user.entity.AiProcessingStatus.PENDING);
+        when(resumeService.getLatestParsedResume(userId)).thenReturn(mockResume);
+
+        JobDocument expectedJob = JobDocument.builder()
+                .title("Java Dev")
+                .company("Google")
+                .location("New York")
+                .description("Code in Java")
+                .applyUrl("http://apply")
+                .employmentType("Full-time")
+                .build();
+        when(newJobService.searchJobs(criteria)).thenReturn(List.of(expectedJob));
+
+        RecommendationRequest mockRequest = mock(RecommendationRequest.class);
+        when(recommendationMapper.toRequestFromDocuments(mockResume, List.of(expectedJob))).thenReturn(mockRequest);
+
+        RecommendationResponse mockResponse = mock(RecommendationResponse.class);
+        when(aiClient.generateRecommendations(mockRequest)).thenReturn(mockResponse);
+
+        // Act
+        RecommendationResponse result = orchestrator.generateRecommendations(userId, criteria);
+
+        // Assert
+        assertThat(result).isSameAs(mockResponse);
+        verify(resumeService, times(2)).getLatestParsedResume(userId);
+        verify(resumeService).processResumeIntelligence(mockResume);
+        verify(newJobService).searchJobs(criteria);
+        verify(recommendationMapper).toRequestFromDocuments(mockResume, List.of(expectedJob));
+        verify(aiClient).generateRecommendations(mockRequest);
     }
 }

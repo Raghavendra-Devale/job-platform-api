@@ -30,9 +30,10 @@ server:
 
 ai:
   enabled: true
-  base-url: http://localhost:8001
-  connect-timeout: 5s
-  read-timeout: 5s
+  base-url: http://localhost:8000
+  timeout: 120s
+  connect-timeout: 30s
+  read-timeout: 120s
 
 providers:
   enabled:
