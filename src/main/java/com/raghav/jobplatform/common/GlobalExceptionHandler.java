@@ -1,5 +1,6 @@
 package com.raghav.jobplatform.common;
 
+import com.raghav.jobplatform.common.ai.AIException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -34,6 +35,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleUsernameNotFound(UsernameNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid email or password"));
+    }
+
+    @ExceptionHandler(AIException.class)
+    public ResponseEntity<Map<String, String>> handleAIException(AIException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("error", ex.getMessage()));
     }
 
     @ExceptionHandler(Exception.class)

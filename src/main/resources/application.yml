@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: job-platform-api
+  datasource:
+    url: jdbc:postgresql://localhost:5432/job_platform
+    username: postgres
+    password: "0000"
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  # data:
+  #   web:
+  #     page-serialization-mode: via-dto
+
+server:
+  port: 8080
+
+# springdoc:
+#   swagger-ui:
+#     path: /swagger-ui
+
+# job:
+#   api:
+#     base-url: https://api.example.com
+#     key: YOUR_API_KEYc
+
+ai:
+  enabled: true
+  base-url: http://localhost:8001
+  connect-timeout: 5s
+  read-timeout: 5s

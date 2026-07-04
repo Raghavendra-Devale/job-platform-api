@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.raghav.jobplatform.user.service.ActivityService;
+import com.raghav.jobplatform.user.service.ResumeService;
 
 import java.io.IOException;
 import java.util.List;
@@ -31,11 +32,13 @@ public class ResumeController {
     private final UserRepository userRepository;
     private final ResumeRepository resumeRepository;
     private final ActivityService activityService;
+    private final ResumeService resumeService;
 
-    public ResumeController(UserRepository userRepository, ResumeRepository resumeRepository, ActivityService activityService) {
+    public ResumeController(UserRepository userRepository, ResumeRepository resumeRepository, ActivityService activityService, ResumeService resumeService) {
         this.userRepository = userRepository;
         this.resumeRepository = resumeRepository;
         this.activityService = activityService;
+        this.resumeService = resumeService;
     }
 
     private UserEntity getAuthenticatedUser() {
@@ -59,53 +62,19 @@ public class ResumeController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Transactional
     public ResponseEntity<?> uploadResume(@RequestParam("file") MultipartFile file) throws IOException {
         UserEntity user = getAuthenticatedUser();
-
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "File is empty"));
+        try {
+            ResumeEntity resume = resumeService.uploadResume(user, file);
+            return ResponseEntity.status(HttpStatus.CREATED).body(new ResumeResponse(
+                    resume.getId(),
+                    resume.getResumeName(),
+                    resume.isActive(),
+                    resume.getUpdatedAt()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-
-        // Limit user to 4 resumes
-        long resumeCount = resumeRepository.countByUser(user);
-        if (resumeCount >= 4) {
-            return ResponseEntity.badRequest().body(Map.of("error", "You can have a maximum of 4 resumes. Please delete an existing resume to upload a new one."));
-        }
-
-        // Limit size to 5MB
-        if (file.getSize() > 5 * 1024 * 1024) {
-            return ResponseEntity.badRequest().body(Map.of("error", "File size exceeds limit of 5MB"));
-        }
-
-        // Check content type
-        String contentType = file.getContentType();
-        if (contentType == null || (!contentType.equals("application/pdf") &&
-                !contentType.equals("application/msword") &&
-                !contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Only PDF and Word documents (.doc, .docx) are allowed"));
-        }
-
-        // First resume uploaded becomes active by default
-        boolean isActive = (resumeCount == 0);
-
-        ResumeEntity resume = ResumeEntity.builder()
-                .user(user)
-                .resumeName(file.getOriginalFilename())
-                .resumeData(file.getBytes())
-                .isActive(isActive)
-                .build();
-
-        resumeRepository.save(resume);
-
-        activityService.log(user, "RESUME_UPLOADED", "Uploaded resume '" + resume.getResumeName() + "'");
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(new ResumeResponse(
-                resume.getId(),
-                resume.getResumeName(),
-                resume.isActive(),
-                resume.getUpdatedAt()
-        ));
     }
 
     @PutMapping("/{id}/activate")

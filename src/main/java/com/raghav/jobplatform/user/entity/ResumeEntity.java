@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "resumes")
@@ -12,7 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"resumeData"})
+@ToString(exclude = {"resumeData", "summary", "skills", "educations", "experiences", "projects"})
 public class ResumeEntity {
 
     @Id
@@ -31,6 +33,30 @@ public class ResumeEntity {
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ai_processing_status", nullable = false)
+    @Builder.Default
+    private AiProcessingStatus aiProcessingStatus = AiProcessingStatus.PENDING;
+
+    @OneToOne(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private ResumeSummaryEntity summary;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ResumeSkillEntity> skills = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ResumeEducationEntity> educations = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ResumeExperienceEntity> experiences = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ResumeProjectEntity> projects = new ArrayList<>();
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
