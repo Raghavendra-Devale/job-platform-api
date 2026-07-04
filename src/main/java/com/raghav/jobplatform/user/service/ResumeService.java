@@ -198,7 +198,7 @@ public class ResumeService {
     }
 
     public ResumeEntity getLatestParsedResume(java.util.UUID userId) {
-        Long dbUserId = Math.abs(userId.getMostSignificantBits());
+        Long dbUserId = userId.getLeastSignificantBits() != 0 ? userId.getLeastSignificantBits() : Math.abs(userId.getMostSignificantBits());
         UserEntity user = userRepository.findById(dbUserId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         
