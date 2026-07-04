@@ -8,8 +8,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableConfigurationProperties(JobApiProperties.class)
 @EnableScheduling
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.raghav.jobplatform", "ai"})
 public class JobPlatformApiApplication {
+
 
 	public static void main(String[] args) {
 		SpringApplication.run(JobPlatformApiApplication.class, args);
