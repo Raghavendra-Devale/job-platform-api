@@ -196,4 +196,16 @@ public class ResumeService {
             resumeRepository.save(resume);
         }
     }
+
+    public ResumeEntity getLatestParsedResume(java.util.UUID userId) {
+        Long dbUserId = Math.abs(userId.getMostSignificantBits());
+        UserEntity user = userRepository.findById(dbUserId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        return resumeRepository.findByUserOrderByUpdatedAtDesc(user).stream()
+                .filter(r -> r.getAiProcessingStatus() == AiProcessingStatus.SUCCESS)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No parsed resume found for user"));
+    }
 }
+
