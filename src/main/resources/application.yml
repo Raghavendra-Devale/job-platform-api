@@ -1,10 +1,12 @@
 spring:
   application:
     name: job-platform-api
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/job_platform
-    username: postgres
-    password: "0000"
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -12,30 +14,21 @@ spring:
     properties:
       hibernate:
         format_sql: true
-  # data:
-  #   web:
-  #     page-serialization-mode: via-dto
 
 server:
-  port: 8080
-
-# springdoc:
-#   swagger-ui:
-#     path: /swagger-ui
-
-# job:
-#   api:
-#     base-url: https://api.example.com
-#     key: YOUR_API_KEYc
+  port: ${SERVER_PORT:8080}
 
 ai:
-  enabled: true
-  base-url: http://localhost:8000
-  timeout: 120s
-  connect-timeout: 30s
-  read-timeout: 120s
+  enabled: ${AI_ENABLED:true}
+  base-url: ${AI_BASE_URL:http://localhost:8000}
+  timeout: ${AI_TIMEOUT:120s}
+  connect-timeout: ${AI_CONNECT_TIMEOUT:30s}
+  read-timeout: ${AI_READ_TIMEOUT:120s}
 
 providers:
   enabled:
-    arbeitnow: true
-    remoteok: true
+    arbeitnow: ${ARBEITNOW_ENABLED:true}
+    remoteok: ${REMOTEOK_ENABLED:true}
+
+environment:
+  JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Kolkata"

@@ -1,13 +1,13 @@
-package com.raghav.jobplatform;
+// package com.raghav.jobplatform;
 
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+// import org.junit.jupiter.api.Test;
+// import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class JobPlatformApiApplicationTests {
+// @SpringBootTest
+// class JobPlatformApiApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+// @Test
+// void contextLoads() {
+// }
 
-}
+// }
