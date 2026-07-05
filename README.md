@@ -1,6 +1,6 @@
 # ⚙️ Job Platform API
 
-The backend REST API for the Job Platform, built with **Spring Boot 3.5** and **Java 17**. Provides secure endpoints for authentication, job management, user profiles, applications, resume handling, and intelligent job recommendations.
+The backend REST API for the Job Platform, built with **Spring Boot 3.5** and **Java 17**. Provides secure endpoints for authentication, job management, user profiles, applications, resume handling, and intelligent job recommendations. It acts as the gateway to the database and coordinates with the Python FastAPI service for AI-driven operations.
 
 ---
 
@@ -31,11 +31,11 @@ src/main/java/com/raghav/jobplatform/
 │   └── provider/                       # Data provider abstractions
 │
 ├── user/                               # User Module
-│   ├── controller/                     # User profile endpoints
-│   ├── dto/                            # User DTOs
-│   ├── entity/                         # User JPA entity
-│   ├── repository/                     # User repository
-│   └── service/                        # User business logic
+│   ├── controller/                     # User profile & Resume endpoints
+│   ├── dto/                            # User and Resume DTOs
+│   ├── entity/                         # User & Resume JPA entities
+│   ├── repository/                     # User and Resume repositories
+│   └── service/                        # User and Resume business logic
 │
 ├── config/                             # Configuration
 │   ├── SecurityConfig.java             # Spring Security & CORS config
@@ -46,8 +46,21 @@ src/main/java/com/raghav/jobplatform/
 │   └── JobApiProperties.java           # External API config properties
 │
 └── common/                             # Shared Utilities
-    └── GlobalExceptionHandler.java     # Centralized error handling
+    ├── GlobalExceptionHandler.java     # Centralized error handling
+    └── ai/                             # AI Client integration for FastAPI communication
+        ├── AIClient.java               # Forwards resume files to FastAPI
+        ├── AIException.java            # AI-specific error boundaries
+        └── dto/                        # FastAPI request/response mapping DTOs
 ```
+
+---
+
+## 🤖 AI & FastAPI Integration
+
+The backend interacts with the FastAPI machine learning service via Spring's reactive `WebClient`.
+
+1. **Resume Processing:** When a PDF resume is uploaded (`POST /api/resumes`), `ResumeService` calls `AIClient.processResume()`. This transmits the file bytes to FastAPI's `/api/v1/resume/process` endpoint. FastAPI returns parsed profile entities (skills, projects, education) which are saved into relational tables.
+2. **Matching Recommendations:** When a client fetches recommendations (`POST /api/recommendations`), `RecommendationOrchestrator` fetches the user's active resume and matching jobs, compiles them into a `RecommendationRequest`, and posts them to FastAPI's `/api/v1/recommendations/generate` endpoint. The scored list and AI match descriptions are mapped and returned to the UI.
 
 ---
 
@@ -76,7 +89,7 @@ src/main/java/com/raghav/jobplatform/
 
 - **Java 17** or later
 - **Maven 3.8+** (or use the included `mvnw` wrapper)
-- **PostgreSQL 14+** running locally
+- **PostgreSQL 14+** running locally (or via Docker pgvector container)
 
 ### 1. Database Setup
 
@@ -87,13 +100,15 @@ CREATE DATABASE job_platform;
 
 ### 2. Configure Application
 
-Edit `src/main/resources/application.properties`:
+Edit `src/main/resources/application.properties` (or `application.yml`):
 
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/job_platform
 spring.datasource.username=postgres
 spring.datasource.password=your_password
 ```
+
+For docker settings, environment variables are mapped in `compose.yaml`.
 
 ### 3. Build & Run
 
@@ -140,6 +155,7 @@ The API starts on **http://localhost:8080**
 | `POST` | `/api/jobs` | Create a job listing | ✅ |
 | `PUT` | `/api/jobs/{id}` | Update a job listing | ✅ |
 | `DELETE` | `/api/jobs/{id}` | Delete a job listing | ✅ |
+| `POST`| `/api/jobs/sync` | Manually run syncer to import jobs | ✅ |
 
 ### Applications
 
@@ -159,7 +175,7 @@ The API starts on **http://localhost:8080**
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| `GET` | `/api/recommendations` | Get personalized job recommendations | ✅ |
+| `POST`| `/api/recommendations` | Generate personalized job recommendations | ✅ |
 
 ### Saved Jobs
 
@@ -196,6 +212,7 @@ The application uses **JPA with `ddl-auto=update`** for schema management. Key e
 | `Job` | Job listings with details (title, company, location, salary, etc.) |
 | `Application` | Job applications linking users to jobs |
 | `SavedJob` | Bookmarked jobs for users |
+| `Resume` | Uploaded PDF documents and parsed skills, summaries, educations, projects |
 
 Auto-migration on startup adds profile columns:
 - `experience`, `current_role_title`, `bio`
@@ -233,6 +250,8 @@ java -jar target/job-platform-api-0.0.1-SNAPSHOT.jar
 | `spring.datasource.password` | `0000` | DB password |
 | `spring.jpa.hibernate.ddl-auto` | `update` | Schema management strategy |
 | `spring.jpa.show-sql` | `true` | Log SQL queries |
+| `ai.enabled` | `true` | Enable FastAPI calling |
+| `ai.base-url` | `http://localhost:8000` | FastAPI base URL |
 
 ---
 
