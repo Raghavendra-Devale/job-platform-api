@@ -63,6 +63,17 @@ build/
 ### VS Code ###
 .vscode/
 
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
+
+# AI tool session caches (Cursor/Windsurf/Claude Code)
+brain/
+
 # Python / Virtual Environment (added to prevent accidental tracking)
 .venv/
 venv/

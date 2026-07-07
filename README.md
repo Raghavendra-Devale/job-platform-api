@@ -247,7 +247,7 @@ java -jar target/job-platform-api-0.0.1-SNAPSHOT.jar
 | `server.port` | `8080` | API server port |
 | `spring.datasource.url` | `jdbc:postgresql://localhost:5432/job_platform` | Database URL |
 | `spring.datasource.username` | `postgres` | DB username |
-| `spring.datasource.password` | `0000` | DB password |
+| `spring.datasource.password` | `<your_password>` | DB password |
 | `spring.jpa.hibernate.ddl-auto` | `update` | Schema management strategy |
 | `spring.jpa.show-sql` | `true` | Log SQL queries |
 | `ai.enabled` | `true` | Enable FastAPI calling |
