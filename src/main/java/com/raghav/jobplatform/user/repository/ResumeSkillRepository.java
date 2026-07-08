@@ -1,9 +1,0 @@
-package com.raghav.jobplatform.user.repository;
-
-import com.raghav.jobplatform.user.entity.ResumeSkillEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface ResumeSkillRepository extends JpaRepository<ResumeSkillEntity, Long> {
-}
