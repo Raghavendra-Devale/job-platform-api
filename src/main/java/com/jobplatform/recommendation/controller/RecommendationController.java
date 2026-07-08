@@ -1,6 +1,6 @@
-package recommendation.controller;
+package com.jobplatform.recommendation.controller;
 
-import ai.dto.RecommendationResponse;
+import com.jobplatform.recommendation.ai.dto.RecommendationResponse;
 import com.raghav.jobplatform.user.entity.UserEntity;
 import com.raghav.jobplatform.user.repository.UserRepository;
 import jakarta.validation.Valid;
@@ -10,8 +10,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import recommendation.model.JobSearchCriteria;
-import recommendation.service.RecommendationOrchestrator;
+import com.jobplatform.recommendation.model.JobSearchCriteria;
+import com.jobplatform.recommendation.service.RecommendationOrchestrator;
 
 import java.util.UUID;
 

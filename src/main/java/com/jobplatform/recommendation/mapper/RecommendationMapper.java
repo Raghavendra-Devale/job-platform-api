@@ -1,7 +1,7 @@
-package recommendation.mapper;
+package com.jobplatform.recommendation.mapper;
 
-import ai.dto.JobDocument;
-import ai.dto.RecommendationRequest;
+import com.jobplatform.recommendation.ai.dto.JobDocument;
+import com.jobplatform.recommendation.ai.dto.RecommendationRequest;
 import com.raghav.jobplatform.jobs.model.Job;
 import com.raghav.jobplatform.user.entity.ResumeEntity;
 import org.springframework.stereotype.Component;

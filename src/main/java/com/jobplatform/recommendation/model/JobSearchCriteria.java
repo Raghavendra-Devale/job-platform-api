@@ -1,4 +1,4 @@
-package recommendation.model;
+package com.jobplatform.recommendation.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,20 +1,19 @@
-package recommendation.service;
+package com.jobplatform.recommendation.service;
 
-import ai.client.AiClient;
-import ai.dto.JobDocument;
-import ai.dto.RecommendationRequest;
-import ai.dto.RecommendationResponse;
+import com.jobplatform.recommendation.ai.client.RecommendationAiClient;
+import com.jobplatform.recommendation.ai.dto.JobDocument;
+import com.jobplatform.recommendation.ai.dto.RecommendationRequest;
+import com.jobplatform.recommendation.ai.dto.RecommendationResponse;
 import com.raghav.jobplatform.common.ai.AIException;
-import com.raghav.jobplatform.jobs.service.JobService;
 import com.raghav.jobplatform.user.entity.ResumeEntity;
 import com.raghav.jobplatform.user.service.ResumeService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import recommendation.exception.AiClientException;
-import recommendation.exception.NoJobsAvailableException;
-import recommendation.exception.ResumeNotFoundException;
-import recommendation.mapper.RecommendationMapper;
-import recommendation.model.JobSearchCriteria;
+import com.jobplatform.recommendation.exception.RecommendationAiClientException;
+import com.jobplatform.recommendation.exception.NoJobsAvailableException;
+import com.jobplatform.recommendation.exception.ResumeNotFoundException;
+import com.jobplatform.recommendation.mapper.RecommendationMapper;
+import com.jobplatform.recommendation.model.JobSearchCriteria;
 import com.raghav.jobplatform.jobs.repository.JobRepository;
 import com.raghav.jobplatform.jobs.entity.JobEntity;
 import org.springframework.data.domain.PageRequest;
@@ -29,13 +28,13 @@ public class RecommendationOrchestrator {
 
     private final ResumeService resumeService;
     private final JobRepository jobRepository;
-    private final AiClient aiClient;
+    private final RecommendationAiClient aiClient;
     private final RecommendationMapper recommendationMapper;
 
     public RecommendationOrchestrator(
             ResumeService resumeService,
             JobRepository jobRepository,
-            AiClient aiClient,
+            RecommendationAiClient aiClient,
             RecommendationMapper recommendationMapper) {
         this.resumeService = resumeService;
         this.jobRepository = jobRepository;
@@ -56,12 +55,12 @@ public class RecommendationOrchestrator {
                     resumeService.processResumeIntelligence(resume);
                 } catch (Exception e) {
                     log.error("Dynamic AI resume processing failed for resume ID: {}", resume.getId(), e);
-                    throw new AiClientException("Failed to analyze resume via AI: " + e.getMessage(), e);
+                    throw new RecommendationAiClientException("Failed to analyze resume via AI: " + e.getMessage(), e);
                 }
                 // Re-fetch to load all associations populated by AI processing
                 resume = resumeService.getLatestParsedResume(userId);
             }
-        } catch (AiClientException e) {
+        } catch (RecommendationAiClientException e) {
             throw e;
         } catch (Exception e) {
             log.error("Failed to load parsed resume for user: {}", userId, e);
@@ -107,7 +106,7 @@ public class RecommendationOrchestrator {
             aiRequest = recommendationMapper.toRequestFromDocuments(resume, jobDocs);
         } catch (Exception e) {
             log.error("Failed to map resume and jobs to AI request", e);
-            throw new AiClientException("Failed to map data to AI request", e);
+            throw new RecommendationAiClientException("Failed to map data to AI request", e);
         }
 
         // 4. Invoke AiClient
@@ -116,10 +115,10 @@ public class RecommendationOrchestrator {
             response = aiClient.generateRecommendations(aiRequest);
         } catch (AIException e) {
             log.error("AI Client failed generating recommendations", e);
-            throw new AiClientException("AI client failure: " + e.getMessage(), e);
+            throw new RecommendationAiClientException("AI client failure: " + e.getMessage(), e);
         } catch (Exception e) {
             log.error("Failed to call AI Client", e);
-            throw new AiClientException("Unexpected failure communicating with AI client", e);
+            throw new RecommendationAiClientException("Unexpected failure communicating with AI client", e);
         }
 
         // 5. Return RecommendationResponse

@@ -1,4 +1,4 @@
-package recommendation.exception;
+package com.jobplatform.recommendation.exception;
 
 public class NoJobsAvailableException extends RuntimeException {
     public NoJobsAvailableException(String message) {

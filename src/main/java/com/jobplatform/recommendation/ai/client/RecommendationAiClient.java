@@ -1,7 +1,7 @@
-package ai.client;
+package com.jobplatform.recommendation.ai.client;
 
-import ai.dto.RecommendationRequest;
-import ai.dto.RecommendationResponse;
+import com.jobplatform.recommendation.ai.dto.RecommendationRequest;
+import com.jobplatform.recommendation.ai.dto.RecommendationResponse;
 import com.raghav.jobplatform.common.ai.AIException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,11 +13,11 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 
 @Slf4j
 @Component
-public class AiClient {
+public class RecommendationAiClient {
 
     private final WebClient webClient;
 
-    public AiClient(@Qualifier("aiEngineWebClient") WebClient webClient) {
+    public RecommendationAiClient(@Qualifier("aiEngineWebClient") WebClient webClient) {
         this.webClient = webClient;
     }
 

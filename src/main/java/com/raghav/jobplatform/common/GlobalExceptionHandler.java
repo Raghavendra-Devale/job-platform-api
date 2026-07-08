@@ -42,18 +42,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("error", ex.getMessage()));
     }
 
-    @ExceptionHandler(recommendation.exception.ResumeNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleResumeNotFoundException(recommendation.exception.ResumeNotFoundException ex) {
+    @ExceptionHandler(com.jobplatform.recommendation.exception.ResumeNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleResumeNotFoundException(com.jobplatform.recommendation.exception.ResumeNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
     }
 
-    @ExceptionHandler(recommendation.exception.NoJobsAvailableException.class)
-    public ResponseEntity<Map<String, String>> handleNoJobsAvailableException(recommendation.exception.NoJobsAvailableException ex) {
+    @ExceptionHandler(com.jobplatform.recommendation.exception.NoJobsAvailableException.class)
+    public ResponseEntity<Map<String, String>> handleNoJobsAvailableException(com.jobplatform.recommendation.exception.NoJobsAvailableException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
     }
 
-    @ExceptionHandler(recommendation.exception.AiClientException.class)
-    public ResponseEntity<Map<String, String>> handleAiClientException(recommendation.exception.AiClientException ex) {
+    @ExceptionHandler(com.jobplatform.recommendation.exception.RecommendationAiClientException.class)
+    public ResponseEntity<Map<String, String>> handleAiClientException(com.jobplatform.recommendation.exception.RecommendationAiClientException ex) {
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("error", ex.getMessage()));
     }
 

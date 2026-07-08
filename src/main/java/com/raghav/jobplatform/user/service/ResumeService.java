@@ -1,6 +1,6 @@
 package com.raghav.jobplatform.user.service;
 
-import com.raghav.jobplatform.common.ai.AIClient;
+import com.raghav.jobplatform.common.ai.ResumeAiClient;
 import com.raghav.jobplatform.common.ai.AIException;
 import com.raghav.jobplatform.common.ai.dto.ResumeIntelligenceResponse;
 import com.raghav.jobplatform.common.ai.dto.ResumeProcessRequest;
@@ -27,7 +27,7 @@ public class ResumeService {
     private final ResumeRepository resumeRepository;
     private final UserRepository userRepository;
     private final ActivityService activityService;
-    private final AIClient aiClient;
+    private final ResumeAiClient aiClient;
 
     private final ResumeSummaryRepository resumeSummaryRepository;
     private final ResumeSkillRepository resumeSkillRepository;
