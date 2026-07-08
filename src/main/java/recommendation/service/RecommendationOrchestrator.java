@@ -15,6 +15,10 @@ import recommendation.exception.NoJobsAvailableException;
 import recommendation.exception.ResumeNotFoundException;
 import recommendation.mapper.RecommendationMapper;
 import recommendation.model.JobSearchCriteria;
+import com.raghav.jobplatform.jobs.repository.JobRepository;
+import com.raghav.jobplatform.jobs.entity.JobEntity;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,20 +28,17 @@ import java.util.UUID;
 public class RecommendationOrchestrator {
 
     private final ResumeService resumeService;
-    private final JobService jobService;
-    private final jobs.service.JobService newJobService;
+    private final JobRepository jobRepository;
     private final AiClient aiClient;
     private final RecommendationMapper recommendationMapper;
 
     public RecommendationOrchestrator(
             ResumeService resumeService,
-            JobService jobService,
-            jobs.service.JobService newJobService,
+            JobRepository jobRepository,
             AiClient aiClient,
             RecommendationMapper recommendationMapper) {
         this.resumeService = resumeService;
-        this.jobService = jobService;
-        this.newJobService = newJobService;
+        this.jobRepository = jobRepository;
         this.aiClient = aiClient;
         this.recommendationMapper = recommendationMapper;
     }
@@ -67,10 +68,29 @@ public class RecommendationOrchestrator {
             throw new ResumeNotFoundException("Latest parsed resume not found for user: " + userId, e);
         }
 
-        // 2. Fetch jobs using JobService (live data)
+        // 2. Fetch jobs using JobRepository (live data)
         List<JobDocument> jobDocs;
         try {
-            jobDocs = newJobService.searchJobs(criteria);
+            int page = criteria.getPage() != null ? criteria.getPage() : 0;
+            int size = criteria.getSize() != null ? criteria.getSize() : 20;
+            String keyword = criteria.getKeyword() != null ? criteria.getKeyword() : "";
+            String location = criteria.getLocation() != null ? criteria.getLocation() : "";
+            
+            Page<JobEntity> entityPage = jobRepository.searchJobsRanked(
+                    keyword, location, "", criteria.getRemote(), null, null, "", "", "", PageRequest.of(page, size)
+            );
+            
+            jobDocs = entityPage.stream()
+                    .map(job -> JobDocument.builder()
+                            .title(job.getTitle())
+                            .company(job.getCompany())
+                            .location(job.getLocation())
+                            .description(job.getDescription())
+                            .applyUrl(job.getApplyUrl())
+                            .employmentType(job.getJobType())
+                            .build())
+                    .toList();
+
             if (jobDocs == null || jobDocs.isEmpty()) {
                 throw new NoJobsAvailableException("No jobs found matching criteria: " + criteria);
             }
