@@ -85,7 +85,7 @@ public class UserController {
     @GetMapping("/users/profile")
     public ResponseEntity<UserResponse> getProfile() {
         UserEntity user = getAuthenticatedUser();
-        String activeResumeName = resumeService.getActiveResumeForUser(user)
+        String activeResumeName = resumeService.getActiveResume(user)
                 .map(ResumeEntity::getResumeName)
                 .orElse(null);
 

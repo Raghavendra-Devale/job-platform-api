@@ -10,6 +10,7 @@ import com.jobrecommendation.jobs.application.JobService;
 import com.jobrecommendation.jobs.domain.Job;
 import com.jobrecommendation.jobs.domain.JobEntity;
 import com.jobrecommendation.resume.application.ResumeService;
+import com.jobrecommendation.resume.application.ResumeQueryService;
 import com.jobrecommendation.resume.domain.ResumeEntity;
 import com.jobrecommendation.user.api.dto.ActivityLogResponse;
 import com.jobrecommendation.user.application.ActivityService;
@@ -35,6 +36,7 @@ public class DashboardController {
 
     private final UserService userService;
     private final ResumeService resumeService;
+    private final ResumeQueryService resumeQueryService;
     private final ApplicationService applicationService;
     private final JobService jobService;
     private final ActivityService activityService;
@@ -50,12 +52,12 @@ public class DashboardController {
         UserEntity user = getAuthenticatedUser();
 
         // 1. Active Resume Name
-        String activeResumeName = resumeService.getActiveResumeForUser(user)
+        String activeResumeName = resumeService.getActiveResume(user)
                 .map(ResumeEntity::getResumeName)
                 .orElse(null);
 
         // 2. Counts
-        long totalResumes = resumeService.getResumeCountForUser(user);
+        long totalResumes = resumeQueryService.getResumeCountForUser(user);
         long savedJobs = applicationService.getSavedJobsCountForUser(user);
         long applications = applicationService.getJobApplicationsCountForUser(user);
         long interviews = applicationService.getJobApplicationsCountForUserAndStatus(user, "INTERVIEW");
@@ -112,7 +114,7 @@ public class DashboardController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found"));
 
         // Get the current active resume
-        ResumeEntity activeResume = resumeService.getActiveResumeForUser(user).orElse(null);
+        ResumeEntity activeResume = resumeService.getActiveResume(user).orElse(null);
 
         // If application already exists, just return it
         JobApplicationEntity application = applicationService.findJobApplicationByUserAndJob(user, job)

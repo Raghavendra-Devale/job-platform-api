@@ -5,36 +5,30 @@ import com.jobrecommendation.jobs.api.dto.JobResponse;
 import com.jobrecommendation.jobs.api.dto.JobSearchRequest;
 import com.jobrecommendation.jobs.api.dto.JobSearchResponse;
 import com.jobrecommendation.jobs.api.dto.SyncSummaryResponse;
+import com.jobrecommendation.jobs.application.JobSearchCriteriaFactory;
 import com.jobrecommendation.jobs.application.JobService;
 import com.jobrecommendation.jobs.application.JobSyncService;
+import com.jobrecommendation.jobs.application.SearchCriteria;
 import com.jobrecommendation.jobs.infrastructure.provider.JobProvider;
 import com.jobrecommendation.user.application.UserService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequiredArgsConstructor
 public class JobController {
 
     private final JobService jobService;
     private final JobSyncService jobSyncService;
     private final List<JobProvider> jobProviders;
     private final UserService userService;
-
-    public JobController(
-            JobService jobService,
-            JobSyncService jobSyncService,
-            List<JobProvider> jobProviders,
-            UserService userService) {
-        this.jobService = jobService;
-        this.jobSyncService = jobSyncService;
-        this.jobProviders = jobProviders;
-        this.userService = userService;
-    }
+    private final JobSearchCriteriaFactory jobSearchCriteriaFactory;
 
     @GetMapping("/api/jobs")
     public Page<JobListResponse> getJobs(
@@ -48,9 +42,8 @@ public class JobController {
     public JobSearchResponse searchJobs(
             JobSearchRequest request
     ) {
-        int page = request.page() != null ? request.page() : 0;
-        int size = request.size() != null ? request.size() : 10;
-        return jobService.searchJobs(request, page, size);
+        SearchCriteria criteria = jobSearchCriteriaFactory.build(request);
+        return jobService.searchJobs(criteria);
     }
 
     @GetMapping("/api/jobs/{id}")

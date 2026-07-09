@@ -76,84 +76,50 @@ public class ResumeController {
     }
 
     @PutMapping("/{id}/activate")
-    @Transactional
     public ResponseEntity<?> activateResume(@PathVariable Long id) {
         UserEntity user = getAuthenticatedUser();
-        ResumeEntity resume = resumeRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume not found"));
-
-        if (resume.isActive()) {
-            return ResponseEntity.ok(Map.of("message", "Resume is already active"));
-        }
-
-        // Set all other resumes of this user to inactive
-        List<ResumeEntity> resumes = resumeRepository.findByUserOrderByUpdatedAtDesc(user);
-        for (ResumeEntity r : resumes) {
-            if (r.isActive()) {
-                r.setActive(false);
-                resumeRepository.save(r);
+        try {
+            resumeService.activateResume(id, user);
+            return ResponseEntity.ok(Map.of("message", "Resume activated successfully"));
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
             }
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-
-        // Activate target resume
-        resume.setActive(true);
-        resumeRepository.save(resume);
-
-        activityService.log(user, "RESUME_ACTIVATED", "Activated resume '" + resume.getResumeName() + "'");
-
-        return ResponseEntity.ok(Map.of("message", "Resume activated successfully"));
     }
 
     @PutMapping("/{id}/rename")
-    @Transactional
     public ResponseEntity<?> renameResume(@PathVariable Long id, @Valid @RequestBody RenameResumeRequest request) {
         UserEntity user = getAuthenticatedUser();
-        ResumeEntity resume = resumeRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume not found"));
-
-        String originalName = resume.getResumeName();
-        String newName = request.resumeName().trim();
-
-        if (newName.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Resume name cannot be empty"));
+        try {
+            ResumeEntity resume = resumeService.renameResume(id, user, request.resumeName());
+            return ResponseEntity.ok(new ResumeResponse(
+                    resume.getId(),
+                    resume.getResumeName(),
+                    resume.isActive(),
+                    resume.getUpdatedAt()
+            ));
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-
-        // Preserve file extension if new name does not specify it
-        String originalExt = "";
-        int lastDot = originalName.lastIndexOf('.');
-        if (lastDot != -1) {
-            originalExt = originalName.substring(lastDot);
-        }
-
-        if (!originalExt.isEmpty() && !newName.toLowerCase().endsWith(originalExt.toLowerCase())) {
-            newName = newName + originalExt;
-        }
-
-        resume.setResumeName(newName);
-        resumeRepository.save(resume);
-
-        return ResponseEntity.ok(new ResumeResponse(
-                resume.getId(),
-                resume.getResumeName(),
-                resume.isActive(),
-                resume.getUpdatedAt()
-        ));
     }
 
     @DeleteMapping("/{id}")
-    @Transactional
     public ResponseEntity<?> deleteResume(@PathVariable Long id) {
         UserEntity user = getAuthenticatedUser();
-        ResumeEntity resume = resumeRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Resume not found"));
-
-        if (resume.isActive()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Active resume cannot be deleted. Please activate another resume first."));
+        try {
+            resumeService.deleteResume(id, user);
+            return ResponseEntity.ok(Map.of("message", "Resume deleted successfully"));
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("not found")) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-
-        resumeRepository.delete(resume);
-
-        return ResponseEntity.ok(Map.of("message", "Resume deleted successfully"));
     }
 
     @GetMapping("/{id}/download")

@@ -2,34 +2,30 @@ package com.jobrecommendation.jobs.application;
 
 import com.jobrecommendation.jobs.api.dto.JobListResponse;
 import com.jobrecommendation.jobs.api.dto.JobResponse;
-import com.jobrecommendation.jobs.api.dto.JobSearchRequest;
 import com.jobrecommendation.jobs.api.dto.JobSearchResponse;
-import com.jobrecommendation.jobs.domain.Job;
 import com.jobrecommendation.jobs.domain.JobEntity;
 import com.jobrecommendation.jobs.domain.repository.JobRepository;
 import com.jobrecommendation.jobs.infrastructure.provider.JobProvider;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class JobService {
 
     private final List<JobProvider> jobProviders;
     private final JobRepository jobRepository;
-
-    public JobService(
-            List<JobProvider> jobProviders,
-            JobRepository jobRepository) {
-        this.jobProviders = jobProviders;
-        this.jobRepository = jobRepository;
-    }
+    private final JobMapper jobMapper;
 
     public List<JobResponse> searchJobs(String keyword) {
         jobProviders.forEach(provider ->
@@ -43,110 +39,47 @@ public class JobService {
 
     public Page<JobListResponse> getJobs(int page, int size) {
         return jobRepository.findAll(PageRequest.of(page, size))
-                .map(job -> new JobListResponse(
-                        job.getId(),
-                        job.getTitle(),
-                        job.getCompany(),
-                        job.getLocation(),
-                        job.getSource(),
-                        job.getRemote(),
-                        job.getTags(),
-                        job.getCreatedAt(),
-                        job.getSalary(),
-                        job.getJobType(),
-                        job.getApplyUrl()
-                ));
+                .map(jobMapper::toJobListResponse);
     }
 
-    public JobSearchResponse searchJobs(
-            JobSearchRequest request,
-            int page,
-            int size
-    ) {
-        String keyword = request.keyword() != null ? request.keyword().trim() : "";
-        String location = request.location() != null ? request.location().trim() : "";
-        String provider = request.provider() != null ? request.provider().trim() : "";
-        Boolean remote = request.remote();
-        String experience = request.experience() != null ? request.experience().trim() : "";
-        String jobType = request.jobType() != null ? request.jobType().trim() : "";
-        String company = request.company() != null ? request.company().trim() : "";
-
-        Integer salaryMin = null;
-        if (request.salaryMin() != null && !request.salaryMin().isBlank()) {
-            try {
-                salaryMin = Integer.parseInt(request.salaryMin().trim().replaceAll("[^\\d]", ""));
-            } catch (NumberFormatException e) {
-                log.warn("Invalid salaryMin format: {}", request.salaryMin());
-            }
-        }
-
-        Integer salaryMax = null;
-        if (request.salaryMax() != null && !request.salaryMax().isBlank()) {
-            try {
-                salaryMax = Integer.parseInt(request.salaryMax().trim().replaceAll("[^\\d]", ""));
-            } catch (NumberFormatException e) {
-                log.warn("Invalid salaryMax format: {}", request.salaryMax());
-            }
-        }
-
+    public JobSearchResponse searchJobs(SearchCriteria criteria) {
         Page<JobEntity> entityPage;
 
-        // Check if custom sorting is requested
-        if (request.sortBy() != null && !request.sortBy().isBlank()) {
-            // Whitelist sort fields to prevent SQL injection/errors
-            String sortBy = "createdAt"; // default fallback
-            String requestedSort = request.sortBy().trim();
-            if (List.of("createdAt", "salaryMin", "salaryMax", "title", "company", "location", "source").contains(requestedSort)) {
-                sortBy = requestedSort;
-            }
-
-            org.springframework.data.domain.Sort.Direction direction = org.springframework.data.domain.Sort.Direction.DESC; // default
-            if (request.sortDirection() != null && "asc".equalsIgnoreCase(request.sortDirection().trim())) {
-                direction = org.springframework.data.domain.Sort.Direction.ASC;
-            }
+        if (criteria.sortBy() != null && !criteria.sortBy().isBlank()) {
+            org.springframework.data.domain.Sort.Direction direction = 
+                    "asc".equalsIgnoreCase(criteria.sortDirection()) ? 
+                            org.springframework.data.domain.Sort.Direction.ASC : 
+                            org.springframework.data.domain.Sort.Direction.DESC;
 
             entityPage = jobRepository.searchJobs(
-                    keyword,
-                    location,
-                    provider,
-                    remote,
-                    salaryMin,
-                    salaryMax,
-                    experience,
-                    jobType,
-                    company,
-                    PageRequest.of(page, size, org.springframework.data.domain.Sort.by(direction, sortBy))
+                    criteria.keyword(),
+                    criteria.location(),
+                    criteria.provider(),
+                    criteria.remote(),
+                    criteria.salaryMin(),
+                    criteria.salaryMax(),
+                    criteria.experience(),
+                    criteria.jobType(),
+                    criteria.company(),
+                    PageRequest.of(criteria.page(), criteria.size(), org.springframework.data.domain.Sort.by(direction, criteria.sortBy()))
             );
         } else {
-            // Default: keyword match weighted ranking
             entityPage = jobRepository.searchJobsRanked(
-                    keyword,
-                    location,
-                    provider,
-                    remote,
-                    salaryMin,
-                    salaryMax,
-                    experience,
-                    jobType,
-                    company,
-                    PageRequest.of(page, size)
+                    criteria.keyword(),
+                    criteria.location(),
+                    criteria.provider(),
+                    criteria.remote(),
+                    criteria.salaryMin(),
+                    criteria.salaryMax(),
+                    criteria.experience(),
+                    criteria.jobType(),
+                    criteria.company(),
+                    PageRequest.of(criteria.page(), criteria.size())
             );
         }
 
         List<JobListResponse> content = entityPage.stream()
-                .map(job -> new JobListResponse(
-                        job.getId(),
-                        job.getTitle(),
-                        job.getCompany(),
-                        job.getLocation(),
-                        job.getSource(),
-                        job.getRemote(),
-                        job.getTags(),
-                        job.getCreatedAt(),
-                        job.getSalary(),
-                        job.getJobType(),
-                        job.getApplyUrl()
-                ))
+                .map(jobMapper::toJobListResponse)
                 .toList();
 
         List<String> distinctProviders = jobRepository.findDistinctSources();
@@ -176,16 +109,7 @@ public class JobService {
                         "Job not found with id: " + id
                 ));
 
-        return new JobResponse(
-                job.getExternalJobId(),
-                job.getTitle(),
-                job.getCompany(),
-                job.getLocation(),
-                job.getDescription(),
-                job.getApplyUrl(),
-                job.getRemote(),
-                job.getTags()
-        );
+        return jobMapper.toJobResponse(job);
     }
 
     public java.util.Optional<JobEntity> findJobEntityById(Long id) {
