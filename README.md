@@ -9,48 +9,44 @@ The backend REST API for the Job Platform, built with **Spring Boot 3.5** and **
 The API follows a **layered modular architecture**, organized by business domain:
 
 ```
-src/main/java/com/raghav/jobplatform/
+src/main/java/com/jobrecommendation/
 │
-├── JobPlatformApiApplication.java      # Application entry point & DB migrations
+├── JobPlatformApiApplication.java      # Spring Boot application entry point
 │
-├── auth/                               # Authentication Module
-│   ├── controller/                     # Login & registration endpoints
-│   ├── dto/                            # Auth request/response DTOs
-│   └── service/                        # Authentication business logic
+├── user/                               # User & Auth Module
+│   ├── api/                            # AuthController, UserController
+│   ├── application/                    # UserService, ActivityService
+│   └── domain/                         # UserEntity, UserProfile, UserRepository
+│
+├── resume/                             # Resume Processing Module
+│   ├── api/                            # ResumeController
+│   ├── application/                    # ResumeService, ResumeQueryService
+│   └── domain/                         # ResumeEntity, ResumeSkillEntity, repository
 │
 ├── jobs/                               # Jobs Module
-│   ├── controller/                     # Job CRUD, search & application endpoints
-│   ├── dto/                            # Job & application DTOs
-│   ├── entity/                         # JPA entities (Job, Application, etc.)
-│   ├── model/                          # Domain models & enums
-│   ├── repository/                     # Spring Data JPA repositories
-│   ├── service/                        # Job & application business logic
-│   ├── specification/                  # JPA Specifications for dynamic queries
-│   ├── scheduler/                      # Scheduled tasks (job sync, cleanup)
-│   ├── client/                         # External API clients
-│   └── provider/                       # Data provider abstractions
+│   ├── api/                            # JobController
+│   ├── application/                    # JobService, JobSyncService
+│   └── domain/                         # JobEntity, JobSyncHistoryEntity, repository
 │
-├── user/                               # User Module
-│   ├── controller/                     # User profile & Resume endpoints
-│   ├── dto/                            # User and Resume DTOs
-│   ├── entity/                         # User & Resume JPA entities
-│   ├── repository/                     # User and Resume repositories
-│   └── service/                        # User and Resume business logic
+├── applications/                       # Applications Module
+│   ├── application/                    # ApplicationService
+│   └── domain/                         # JobApplicationEntity, SavedJobEntity, repository
 │
-├── config/                             # Configuration
-│   ├── SecurityConfig.java             # Spring Security & CORS config
-│   ├── JwtService.java                 # JWT generation & validation
-│   ├── JwtAuthenticationFilter.java    # JWT request filter
-│   ├── CustomUserDetailsService.java   # UserDetailsService implementation
-│   ├── RestClientConfig.java           # External HTTP client config
-│   └── JobApiProperties.java           # External API config properties
+├── recommendation/                     # AI Recommendations Module
+│   ├── api/                            # RecommendationController
+│   └── application/                    # RecommendationOrchestrator
 │
-└── common/                             # Shared Utilities
-    ├── GlobalExceptionHandler.java     # Centralized error handling
-    └── ai/                             # AI Client integration for FastAPI communication
-        ├── AIClient.java               # Forwards resume files to FastAPI
-        ├── AIException.java            # AI-specific error boundaries
-        └── dto/                        # FastAPI request/response mapping DTOs
+├── dashboard/                          # Dashboard Analytics Module
+│   ├── api/                            # DashboardController
+│   └── application/                    # Dashboard DTO logic
+│
+├── infrastructure/                     # Technical Infrastructure
+│   ├── ai/                             # REST integration WebClient targeting FastAPI
+│   └── security/                       # SecurityConfig, JwtService, Authentication Filters
+│
+└── common/                             # Cross-Cutting Shared Helpers
+    ├── GlobalExceptionHandler.java     # Rest exception advice handler
+    └── dto/                            # Shared data models
 ```
 
 ---
