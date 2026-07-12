@@ -44,7 +44,10 @@ public class DashboardController {
     private UserEntity getAuthenticatedUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userService.findUserByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                                "User not found")
+                );
     }
 
     @GetMapping("/summary")
@@ -156,7 +159,10 @@ public class DashboardController {
             @Valid @RequestBody UpdateJobApplicationStatusRequest request) {
         UserEntity user = getAuthenticatedUser();
         JobApplicationEntity application = applicationService.findJobApplicationById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Application not found"));
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Application not found")
+                );
 
         if (!application.getUser().getId().equals(user.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Unauthorized access"));

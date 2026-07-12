@@ -25,6 +25,7 @@ public class ApplicationService {
     }
 
     public SavedJobEntity saveSavedJob(SavedJobEntity savedJob) {
+
         return savedJobRepository.save(savedJob);
     }
 
@@ -38,11 +39,13 @@ public class ApplicationService {
     }
 
     public long getSavedJobsCountForUser(UserEntity user) {
+
         return savedJobRepository.countByUser(user);
     }
 
     // Job Applications
     public long getJobApplicationsCountForUser(UserEntity user) {
+
         return jobApplicationRepository.countByUser(user);
     }
 
@@ -67,6 +70,7 @@ public class ApplicationService {
     }
 
     public void deleteJobApplication(JobApplicationEntity application) {
+
         jobApplicationRepository.delete(application);
     }
 }

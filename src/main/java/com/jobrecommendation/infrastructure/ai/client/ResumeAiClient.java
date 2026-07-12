@@ -22,7 +22,9 @@ public class ResumeAiClient {
     private final WebClient webClient;
     private final AIProperties properties;
 
-    public ResumeAiClient(@Qualifier("aiWebClient") WebClient webClient, AIProperties properties) {
+    public ResumeAiClient(
+            @Qualifier("aiWebClient") WebClient webClient,
+            AIProperties properties) {
         this.webClient = webClient;
         this.properties = properties;
     }

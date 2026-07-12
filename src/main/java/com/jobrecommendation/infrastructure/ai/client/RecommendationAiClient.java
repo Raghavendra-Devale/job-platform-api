@@ -18,6 +18,7 @@ public class RecommendationAiClient {
     private final WebClient webClient;
 
     public RecommendationAiClient(@Qualifier("aiEngineWebClient") WebClient webClient) {
+
         this.webClient = webClient;
     }
 

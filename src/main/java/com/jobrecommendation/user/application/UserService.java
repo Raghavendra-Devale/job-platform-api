@@ -17,18 +17,22 @@ public class UserService {
     private final RecentViewRepository recentViewRepository;
 
     public Optional<UserEntity> findUserByEmail(String email) {
+
         return userRepository.findByEmail(email);
     }
 
     public Optional<UserEntity> findUserById(Long id) {
+
         return userRepository.findById(id);
     }
 
     public boolean existsByEmail(String email) {
+
         return userRepository.existsByEmail(email);
     }
 
     public UserEntity save(UserEntity user) {
+
         return userRepository.save(user);
     }
 

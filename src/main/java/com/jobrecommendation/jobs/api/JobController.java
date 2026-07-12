@@ -54,6 +54,7 @@ public class JobController {
 
     @PostMapping("/api/jobs/sync")
     public SyncSummaryResponse syncJobs() {
+
         return jobSyncService.syncJobs();
     }
 
