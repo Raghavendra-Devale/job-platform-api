@@ -51,8 +51,7 @@ public class RecommendationRequestFactory {
         }
 
         return RecommendationRequest.builder()
-                .resumeText(sb.toString())
-                .jobs(jobs)
+                .candidateProfileId(resume.getId().toString())
                 .build();
     }
 }

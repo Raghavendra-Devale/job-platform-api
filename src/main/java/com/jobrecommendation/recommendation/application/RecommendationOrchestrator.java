@@ -20,16 +20,16 @@ import org.springframework.stereotype.Service;
 public class RecommendationOrchestrator {
 
     private final ResumePreparationService resumePreparationService;
-    private final JobRecommendationService jobRecommendationService;
-    private final RecommendationRequestFactory recommendationRequestFactory;
     private final RecommendationAiClient aiClient;
 
     public RecommendationResponse generateRecommendations(UUID userId, JobSearchCriteria criteria) {
         log.info("Generating recommendations for user {}", userId);
 
         ResumeEntity resume = resumePreparationService.prepareResume(userId);
-        List<JobDocument> jobs = jobRecommendationService.findJobs(criteria);
-        RecommendationRequest request = recommendationRequestFactory.create(resume, jobs);
+        
+        RecommendationRequest request = RecommendationRequest.builder()
+                .candidateProfileId(resume.getId().toString())
+                .build();
 
         return executeAiRecommendation(request);
     }

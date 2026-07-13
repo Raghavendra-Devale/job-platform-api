@@ -17,10 +17,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class RecommendationRequest {
-    @NotBlank(message = "Resume text is required")
-    private String resumeText;
-
-    @NotEmpty(message = "Jobs list cannot be empty")
-    @Valid
-    private List<JobDocument> jobs;
+    @NotBlank(message = "Candidate profile ID is required")
+    private String candidateProfileId;
 }
