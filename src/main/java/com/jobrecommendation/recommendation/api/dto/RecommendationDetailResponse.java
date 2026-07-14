@@ -23,4 +23,6 @@ public class RecommendationDetailResponse {
     private List<String> missingSkills;
     private String recommendationReason;
     private String applyUrl;
+    private List<String> strengths;
+    private List<String> suggestions;
 }

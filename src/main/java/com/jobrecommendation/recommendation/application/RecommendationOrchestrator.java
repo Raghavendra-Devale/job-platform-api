@@ -76,6 +76,23 @@ public class RecommendationOrchestrator {
 
         RecommendationMatch match = aiClient.getJobMatchDetails(resume.getId().toString(), jobId);
 
+        List<String> matchingSkills = match.getMatchingSkills() != null ? match.getMatchingSkills() : List.of();
+        List<String> missingSkills = match.getMissingSkills() != null ? match.getMissingSkills() : List.of();
+
+        List<String> strengths = List.of(
+            matchingSkills.isEmpty() 
+                ? "Your general profile aligns with this designation."
+                : "Strong match in core skills: " + String.join(", ", matchingSkills),
+            "Your professional background maps to the job requirement guidelines."
+        );
+
+        List<String> suggestions = List.of(
+            missingSkills.isEmpty() 
+                ? "Perfect skills match! Highlight this match in your cover letter."
+                : "Bridge the technical skill gap by adding: " + String.join(", ", missingSkills),
+            "Optimize resume formatting to clearly outline matching technology experience."
+        );
+
         return RecommendationDetailResponse.builder()
                 .jobId(job.getId())
                 .title(job.getTitle())
@@ -85,10 +102,12 @@ public class RecommendationOrchestrator {
                 .remote(job.getRemote() != null && job.getRemote())
                 .postedAt(job.getCreatedAt() != null ? job.getCreatedAt().toString() : "")
                 .similarityScore(match.getSimilarityScore() != null ? match.getSimilarityScore() : 0.0)
-                .matchingSkills(match.getMatchingSkills() != null ? match.getMatchingSkills() : List.of())
-                .missingSkills(match.getMissingSkills() != null ? match.getMissingSkills() : List.of())
+                .matchingSkills(matchingSkills)
+                .missingSkills(missingSkills)
                 .recommendationReason(match.getRecommendationReason())
                 .applyUrl(job.getApplyUrl())
+                .strengths(strengths)
+                .suggestions(suggestions)
                 .build();
     }
 
