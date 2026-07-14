@@ -1,5 +1,6 @@
 package com.jobrecommendation.infrastructure.ai.client;
 
+import com.jobrecommendation.infrastructure.ai.dto.RecommendationMatch;
 import com.jobrecommendation.infrastructure.ai.dto.RecommendationRequest;
 import com.jobrecommendation.infrastructure.ai.dto.RecommendationResponse;
 import com.jobrecommendation.infrastructure.ai.exception.AIException;
@@ -50,6 +51,35 @@ public class RecommendationAiClient {
         } catch (WebClientRequestException e) {
             log.error("Failed to connect to AI engine. Endpoint: {}", endpoint, e);
             throw new AIException("AI Engine is unreachable", e);
+        } catch (Exception e) {
+            log.error("AI engine communication failed. Endpoint: {}", endpoint, e);
+            throw new AIException("Failed to communicate with AI Engine", e);
+        }
+    }
+
+    public RecommendationMatch getJobMatchDetails(String candidateProfileId, Long jobId) {
+        if (candidateProfileId == null || jobId == null) {
+            throw new AIException("Parameters cannot be null");
+        }
+
+        String endpoint = String.format("/api/v1/recommendations/match/%d?candidate_profile_id=%s", jobId, candidateProfileId);
+        log.info("Sending job match details request to endpoint: {}", endpoint);
+
+        try {
+            RecommendationMatch response = webClient.get()
+                    .uri(endpoint)
+                    .retrieve()
+                    .bodyToMono(RecommendationMatch.class)
+                    .block();
+
+            if (response == null) {
+                throw new AIException("Received null response from AI Engine for job match");
+            }
+
+            return response;
+        } catch (WebClientResponseException e) {
+            log.error("AI engine returned error status: {}. Endpoint: {}", e.getStatusCode(), endpoint);
+            throw new AIException("AI Engine returned error: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             log.error("AI engine communication failed. Endpoint: {}", endpoint, e);
             throw new AIException("Failed to communicate with AI Engine", e);

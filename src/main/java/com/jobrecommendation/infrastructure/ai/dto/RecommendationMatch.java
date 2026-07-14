@@ -13,6 +13,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class RecommendationResponse {
-    private List<RecommendationMatch> recommendations;
+public class RecommendationMatch {
+    private Long jobId;
+    private Double similarityScore;
+    private List<String> matchingSkills;
+    private List<String> missingSkills;
+    private String recommendationReason;
 }

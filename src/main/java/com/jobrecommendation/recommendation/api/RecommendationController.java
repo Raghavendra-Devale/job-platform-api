@@ -1,11 +1,12 @@
 package com.jobrecommendation.recommendation.api;
 
-import com.jobrecommendation.infrastructure.ai.dto.RecommendationResponse;
+import com.jobrecommendation.recommendation.api.dto.RecommendationCardResponse;
+import com.jobrecommendation.recommendation.api.dto.RecommendationDetailResponse;
 import com.jobrecommendation.recommendation.application.RecommendationOrchestrator;
 import com.jobrecommendation.recommendation.domain.JobSearchCriteria;
 import com.jobrecommendation.user.application.UserService;
 import com.jobrecommendation.user.domain.UserEntity;
-import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +30,7 @@ public class RecommendationController {
     }
 
     @PostMapping
-    public ResponseEntity<RecommendationResponse> generateRecommendations(
+    public ResponseEntity<List<RecommendationCardResponse>> generateRecommendations(
             @RequestBody(required = false) JobSearchCriteria criteria) {
         
         if (criteria == null) {
@@ -39,7 +40,16 @@ public class RecommendationController {
         UserEntity user = getAuthenticatedUser();
         UUID userId = new UUID(0L, user.getId());
 
-        RecommendationResponse response = orchestrator.generateRecommendations(userId, criteria);
+        List<RecommendationCardResponse> response = orchestrator.generateRecommendations(userId, criteria);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<RecommendationDetailResponse> getRecommendationDetail(@PathVariable("id") Long jobId) {
+        UserEntity user = getAuthenticatedUser();
+        UUID userId = new UUID(0L, user.getId());
+
+        RecommendationDetailResponse response = orchestrator.getRecommendationDetail(userId, jobId);
         return ResponseEntity.ok(response);
     }
 
