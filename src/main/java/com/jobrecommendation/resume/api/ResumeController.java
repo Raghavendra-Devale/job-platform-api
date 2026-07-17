@@ -242,4 +242,15 @@ public class ResumeController {
                 .header(HttpHeaders.CONTENT_TYPE, contentType)
                 .body(resume.getResumeData());
     }
+
+    @PostMapping("/active/reprocess")
+    public ResponseEntity<?> reprocessActiveResume() {
+        UserEntity user = getAuthenticatedUser();
+        try {
+            resumeService.reprocessActiveResume(user);
+            return ResponseEntity.ok(Map.of("message", "Resume AI processing has been triggered. Please refresh in a few moments."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

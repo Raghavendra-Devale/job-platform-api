@@ -6,6 +6,8 @@ import com.jobrecommendation.applications.api.dto.UpdateJobApplicationStatusRequ
 import com.jobrecommendation.applications.application.ApplicationService;
 import com.jobrecommendation.applications.domain.JobApplicationEntity;
 import com.jobrecommendation.dashboard.api.dto.DashboardSummaryResponse;
+import com.jobrecommendation.dashboard.api.dto.DashboardResponse;
+import com.jobrecommendation.dashboard.application.DashboardService;
 import com.jobrecommendation.jobs.application.JobService;
 import com.jobrecommendation.jobs.domain.Job;
 import com.jobrecommendation.jobs.domain.JobEntity;
@@ -40,6 +42,7 @@ public class DashboardController {
     private final ApplicationService applicationService;
     private final JobService jobService;
     private final ActivityService activityService;
+    private final DashboardService dashboardService;
 
     private UserEntity getAuthenticatedUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -48,6 +51,13 @@ public class DashboardController {
                         () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                                 "User not found")
                 );
+    }
+
+    @GetMapping
+    public ResponseEntity<DashboardResponse> getDashboard() {
+        UserEntity user = getAuthenticatedUser();
+        DashboardResponse response = dashboardService.getDashboard(user);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/summary")

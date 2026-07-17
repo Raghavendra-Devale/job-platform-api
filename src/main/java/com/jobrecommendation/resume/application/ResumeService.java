@@ -5,6 +5,7 @@ import com.jobrecommendation.resume.domain.ResumeEntity;
 import com.jobrecommendation.resume.domain.repository.ResumeRepository;
 import com.jobrecommendation.user.application.ActivityService;
 import com.jobrecommendation.user.domain.UserEntity;
+import com.jobrecommendation.applications.domain.repository.JobApplicationRepository;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -23,20 +24,27 @@ public class ResumeService {
     private final ResumeValidator validator;
     private final ResumeIntelligenceService resumeIntelligenceService;
     private final ActivityService activityService;
+    private final JobApplicationRepository jobApplicationRepository;
 
     @Transactional
     public ResumeEntity uploadResume(UserEntity user, MultipartFile file) throws IOException {
         log.info("Uploading resume for user {}", user.getId());
         validator.validateUpload(user, file);
 
-        long resumeCount = resumeRepository.countByUser(user);
-        boolean isActive = (resumeCount == 0);
+        // Deactivate all existing active resumes
+        List<ResumeEntity> existingResumes = resumeRepository.findByUserOrderByUpdatedAtDesc(user);
+        for (ResumeEntity r : existingResumes) {
+            if (r.isActive()) {
+                r.setActive(false);
+                resumeRepository.save(r);
+            }
+        }
 
         ResumeEntity resume = ResumeEntity.builder()
                 .user(user)
                 .resumeName(file.getOriginalFilename())
                 .resumeData(file.getBytes())
-                .isActive(isActive)
+                .isActive(true)
                 .aiProcessingStatus(AiProcessingStatus.PROCESSING)
                 .build();
 
@@ -114,10 +122,49 @@ public class ResumeService {
             throw new IllegalArgumentException("Active resume cannot be deleted. Please activate another resume first.");
         }
 
+        // Nullify reference in job applications to prevent foreign key violation
+        jobApplicationRepository.nullifyResumeAssociation(resume);
+
         resumeRepository.delete(resume);
     }
 
+    @Transactional
+    public ResumeEntity reprocessActiveResume(UserEntity user) {
+        log.info("Reprocessing active resume for user {}", user.getId());
+        Optional<ResumeEntity> activeResumeOpt = getActiveResume(user);
+
+        if (activeResumeOpt.isEmpty()) {
+            throw new IllegalArgumentException("No active resume found to reprocess");
+        }
+
+        ResumeEntity resume = activeResumeOpt.get();
+
+        // Reset status to PROCESSING before retry
+        resume.setAiProcessingStatus(AiProcessingStatus.PROCESSING);
+        resume = resumeRepository.save(resume);
+        log.info("Reset resume {} status to PROCESSING for reprocessing", resume.getId());
+
+        try {
+            resumeIntelligenceService.processResumeIntelligence(resume);
+        } catch (Exception e) {
+            log.error("AI reprocessing failed for resume {}", resume.getId(), e);
+        }
+
+        return resumeRepository.findById(resume.getId()).orElse(resume);
+    }
+
+    @Transactional
     public Optional<ResumeEntity> getActiveResume(UserEntity user) {
-        return resumeRepository.findByUserAndIsActiveTrue(user);
+        Optional<ResumeEntity> active = resumeRepository.findByUserAndIsActiveTrue(user);
+        if (active.isEmpty()) {
+            List<ResumeEntity> resumes = resumeRepository.findByUserOrderByUpdatedAtDesc(user);
+            if (!resumes.isEmpty()) {
+                ResumeEntity first = resumes.get(0);
+                first.setActive(true);
+                resumeRepository.save(first);
+                return Optional.of(first);
+            }
+        }
+        return active;
     }
 }

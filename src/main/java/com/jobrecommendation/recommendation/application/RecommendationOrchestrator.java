@@ -11,12 +11,19 @@ import com.jobrecommendation.jobs.domain.repository.JobRepository;
 import com.jobrecommendation.recommendation.api.dto.RecommendationCardResponse;
 import com.jobrecommendation.recommendation.api.dto.RecommendationDetailResponse;
 import com.jobrecommendation.recommendation.domain.JobSearchCriteria;
+import com.jobrecommendation.recommendation.domain.RecommendationRunEntity;
+import com.jobrecommendation.recommendation.domain.RecommendationItemEntity;
+import com.jobrecommendation.recommendation.domain.repository.RecommendationRunRepository;
+import com.jobrecommendation.recommendation.api.dto.RecommendationRunResponse;
+import com.jobrecommendation.recommendation.api.dto.RecommendationRunSummaryResponse;
+import com.jobrecommendation.user.domain.UserEntity;
 import com.jobrecommendation.resume.domain.ResumeEntity;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -26,7 +33,58 @@ public class RecommendationOrchestrator {
     private final ResumePreparationService resumePreparationService;
     private final RecommendationAiClient aiClient;
     private final JobRepository jobRepository;
+    private final RecommendationRunRepository recommendationRunRepository;
 
+    @Transactional(readOnly = true)
+    public RecommendationRunResponse getLatestRecommendationRun(UserEntity user) {
+        return recommendationRunRepository.findFirstByUserOrderByGeneratedAtDesc(user)
+                .map(this::mapToRunResponse)
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecommendationRunSummaryResponse> getRecommendationHistory(UserEntity user) {
+        return recommendationRunRepository.findByUserOrderByGeneratedAtDesc(user).stream()
+                .map(run -> RecommendationRunSummaryResponse.builder()
+                        .id(run.getId())
+                        .generatedAt(run.getGeneratedAt())
+                        .averageMatch(run.getAverageMatch())
+                        .recommendationCount(run.getRecommendationCount())
+                        .build())
+                .toList();
+    }
+
+    private RecommendationRunResponse mapToRunResponse(RecommendationRunEntity run) {
+        List<RecommendationCardResponse> cards = run.getItems().stream()
+                .map(item -> {
+                    JobEntity job = item.getJob();
+                    return RecommendationCardResponse.builder()
+                            .jobId(job.getId())
+                            .title(job.getTitle())
+                            .company(job.getCompany())
+                            .location(job.getLocation())
+                            .description(job.getDescription())
+                            .remote(job.getRemote() != null && job.getRemote())
+                            .postedAt(job.getCreatedAt() != null ? job.getCreatedAt().toString() : "")
+                            .similarityScore(item.getScore())
+                            .matchingSkills(item.getMatchingSkills().isEmpty() ? List.of() : List.of(item.getMatchingSkills().split(",")))
+                            .missingSkills(item.getMissingSkills().isEmpty() ? List.of() : List.of(item.getMissingSkills().split(",")))
+                            .recommendationReason(item.getReason())
+                            .applyUrl(job.getApplyUrl())
+                            .build();
+                })
+                .toList();
+
+        return RecommendationRunResponse.builder()
+                .id(run.getId())
+                .generatedAt(run.getGeneratedAt())
+                .averageMatch(run.getAverageMatch())
+                .recommendationCount(run.getRecommendationCount())
+                .items(cards)
+                .build();
+    }
+
+    @Transactional
     public List<RecommendationCardResponse> generateRecommendations(UUID userId, JobSearchCriteria criteria) {
         log.info("Generating recommendations for user {}", userId);
 
@@ -41,13 +99,48 @@ public class RecommendationOrchestrator {
             return List.of();
         }
 
-        return aiResponse.getRecommendations().stream()
-                .map(match -> {
-                    JobEntity job = jobRepository.findById(match.getJobId()).orElse(null);
-                    if (job == null) {
-                        log.warn("Job not found locally for ID: {}", match.getJobId());
-                        return null;
-                    }
+        List<RecommendationMatch> matches = aiResponse.getRecommendations();
+        double sum = 0.0;
+        for (RecommendationMatch m : matches) {
+            sum += m.getSimilarityScore() != null ? m.getSimilarityScore() : 0.0;
+        }
+        double avgMatch = matches.isEmpty() ? 0.0 : (sum / matches.size());
+
+        // Create RecommendationRunEntity
+        RecommendationRunEntity run = RecommendationRunEntity.builder()
+                .user(resume.getUser())
+                .resume(resume)
+                .generatedAt(java.time.LocalDateTime.now())
+                .averageMatch(avgMatch)
+                .recommendationCount(matches.size())
+                .build();
+
+        List<RecommendationItemEntity> items = new java.util.ArrayList<>();
+        int rank = 1;
+        for (RecommendationMatch match : matches) {
+            JobEntity job = jobRepository.findById(match.getJobId()).orElse(null);
+            if (job == null) {
+                log.warn("Job not found locally for ID: {}", match.getJobId());
+                continue;
+            }
+            RecommendationItemEntity item = RecommendationItemEntity.builder()
+                    .run(run)
+                    .job(job)
+                    .score(match.getSimilarityScore() != null ? match.getSimilarityScore() : 0.0)
+                    .reason(match.getRecommendationReason())
+                    .matchingSkills(match.getMatchingSkills() != null ? String.join(",", match.getMatchingSkills()) : "")
+                    .missingSkills(match.getMissingSkills() != null ? String.join(",", match.getMissingSkills()) : "")
+                    .rank(rank++)
+                    .build();
+            items.add(item);
+        }
+        run.setItems(items);
+
+        recommendationRunRepository.save(run);
+
+        return items.stream()
+                .map(item -> {
+                    JobEntity job = item.getJob();
                     return RecommendationCardResponse.builder()
                             .jobId(job.getId())
                             .title(job.getTitle())
@@ -56,14 +149,13 @@ public class RecommendationOrchestrator {
                             .description(job.getDescription())
                             .remote(job.getRemote() != null && job.getRemote())
                             .postedAt(job.getCreatedAt() != null ? job.getCreatedAt().toString() : "")
-                            .similarityScore(match.getSimilarityScore() != null ? match.getSimilarityScore() : 0.0)
-                            .matchingSkills(match.getMatchingSkills() != null ? match.getMatchingSkills() : List.of())
-                            .missingSkills(match.getMissingSkills() != null ? match.getMissingSkills() : List.of())
-                            .recommendationReason(match.getRecommendationReason())
+                            .similarityScore(item.getScore())
+                            .matchingSkills(item.getMatchingSkills().isEmpty() ? List.of() : List.of(item.getMatchingSkills().split(",")))
+                            .missingSkills(item.getMissingSkills().isEmpty() ? List.of() : List.of(item.getMissingSkills().split(",")))
+                            .recommendationReason(item.getReason())
                             .applyUrl(job.getApplyUrl())
                             .build();
                 })
-                .filter(java.util.Objects::nonNull)
                 .toList();
     }
 

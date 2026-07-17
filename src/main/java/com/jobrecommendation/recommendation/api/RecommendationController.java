@@ -6,6 +6,8 @@ import com.jobrecommendation.recommendation.application.RecommendationOrchestrat
 import com.jobrecommendation.recommendation.domain.JobSearchCriteria;
 import com.jobrecommendation.user.application.UserService;
 import com.jobrecommendation.user.domain.UserEntity;
+import com.jobrecommendation.recommendation.api.dto.RecommendationRunResponse;
+import com.jobrecommendation.recommendation.api.dto.RecommendationRunSummaryResponse;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,32 @@ public class RecommendationController {
             UserService userService) {
         this.orchestrator = orchestrator;
         this.userService = userService;
+    }
+
+    @GetMapping("/latest")
+    public ResponseEntity<RecommendationRunResponse> getLatestRun() {
+        UserEntity user = getAuthenticatedUser();
+        RecommendationRunResponse response = orchestrator.getLatestRecommendationRun(user);
+        if (response == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<RecommendationRunSummaryResponse>> getHistory() {
+        UserEntity user = getAuthenticatedUser();
+        List<RecommendationRunSummaryResponse> response = orchestrator.getRecommendationHistory(user);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/regenerate")
+    public ResponseEntity<RecommendationRunResponse> regenerateRecommendations() {
+        UserEntity user = getAuthenticatedUser();
+        UUID userId = new UUID(0L, user.getId());
+        orchestrator.generateRecommendations(userId, JobSearchCriteria.builder().build());
+        RecommendationRunResponse response = orchestrator.getLatestRecommendationRun(user);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
